@@ -1,5 +1,7 @@
 # web-cli
 
+[![npm](https://img.shields.io/npm/v/@peron_js/web-cli)](https://www.npmjs.com/package/@peron_js/web-cli)
+
 A CLI to search and fetch the web.
 
 ## Install
