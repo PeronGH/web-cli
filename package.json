@@ -25,7 +25,10 @@
     "@types/bun": "latest",
     "citty": "^0.2.2",
     "defuddle": "^0.18.1",
-    "linkedom": "^0.18.12"
+    "linkedom": "^0.18.12",
+    "mathml-to-latex": "^1.8.0",
+    "turndown": "^7.2.4",
+    "undici": "^8.4.1"
   },
   "peerDependencies": {
     "typescript": "^5"

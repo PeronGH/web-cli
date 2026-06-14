@@ -1,9 +1,11 @@
 import { defineCommand } from "citty";
+import { Defuddle } from "defuddle/node";
+import { parseHTML } from "linkedom";
 
-export const fetch = defineCommand({
+export const fetchCommand = defineCommand({
   meta: {
     name: "fetch",
-    description: "Fetch the contents of a URL",
+    description: "Fetch a URL and print its main content as Markdown",
   },
   args: {
     url: {
@@ -12,8 +14,22 @@ export const fetch = defineCommand({
       required: true,
     },
   },
-  run({ args }) {
-    // TODO: implement web fetch
-    console.log(`[stub] fetching: ${args.url}`);
+  async run({ args }) {
+    const response = await fetch(args.url);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch ${args.url}: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const { document } = parseHTML(await response.text());
+    const { title, content } = await Defuddle(document, args.url, {
+      markdown: true,
+    });
+
+    if (title) {
+      console.log(`# ${title}\n`);
+    }
+    console.log(content);
   },
 });

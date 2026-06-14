@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
 
-export const search = defineCommand({
+export const searchCommand = defineCommand({
   meta: {
     name: "search",
     description: "Search the web for a query",
