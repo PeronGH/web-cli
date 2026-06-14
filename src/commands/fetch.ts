@@ -2,7 +2,8 @@ import { defineCommand } from "citty";
 import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
-import { fetchPage } from "../http.ts";
+import { fetchPage, fetchPageAsCurl } from "../http.ts";
+import { rewriteUrl } from "../rewrite.ts";
 
 // A missing content type is treated as HTML, matching how browsers sniff pages.
 function isHtml(contentType: string): boolean {
@@ -29,6 +30,58 @@ function looksBinary(text: string): boolean {
   return replacements > text.length * 0.1;
 }
 
+const REDDIT_LISTING = /^\/(r|u|user)\/[^/]+(\/[^/]+)?\/?$/;
+const SE_QUESTION = /^\/questions\/\d+(\/|$)/;
+const GITHUB_ISSUE = /^\/[^/]+\/[^/]+\/issues\/\d+/;
+
+// Stack Exchange hosts share one Q&A engine, so Defuddle mangles their question
+// pages identically.
+const STACKEXCHANGE_HOSTS = new Set([
+  "stackoverflow.com",
+  "serverfault.com",
+  "superuser.com",
+  "askubuntu.com",
+  "mathoverflow.net",
+  "stackapps.com",
+]);
+
+function isStackExchange(hostname: string): boolean {
+  return (
+    STACKEXCHANGE_HOSTS.has(hostname) || hostname.endsWith(".stackexchange.com")
+  );
+}
+
+// Hosts and paths where Defuddle is known to mangle the extracted content, so we
+// convert the whole page instead.
+function defuddleManglesUrl(url: URL): boolean {
+  if (
+    /(^|\.)reddit\.com$/.test(url.hostname) &&
+    REDDIT_LISTING.test(url.pathname)
+  )
+    return true;
+  if (isStackExchange(url.hostname) && SE_QUESTION.test(url.pathname))
+    return true;
+  if (url.hostname === "xdaforums.com" && url.pathname.startsWith("/t/"))
+    return true;
+  if (url.hostname === "github.com" && GITHUB_ISSUE.test(url.pathname))
+    return true;
+  return false;
+}
+
+function fullPageMarkdown(html: string): string {
+  const turndown = new TurndownService();
+  turndown.remove(["script", "style"]);
+  return turndown.turndown(html);
+}
+
+// Anubis serves a proof-of-work interstitial carrying a `<script
+// id="anubis_challenge">` payload instead of the page.
+function isAnubisChallenge(document: {
+  getElementById(id: string): unknown;
+}): boolean {
+  return document.getElementById("anubis_challenge") !== null;
+}
+
 export const fetchCommand = defineCommand({
   meta: {
     name: "fetch",
@@ -48,7 +101,8 @@ export const fetchCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const response = await fetchPage(args.url);
+    const url = rewriteUrl(args.url);
+    const response = await fetchPage(url);
     const contentType = (
       response.headers.get("content-type") ?? ""
     ).toLowerCase();
@@ -59,26 +113,40 @@ export const fetchCommand = defineCommand({
       const text = await response.text();
       if (looksBinary(text)) {
         throw new Error(
-          `Cannot fetch ${args.url}: content is binary (${contentType})`,
+          `Cannot fetch ${url}: content is binary (${contentType})`,
         );
       }
       console.log(text);
       return;
     }
 
-    const html = await response.text();
+    let finalUrl = response.url || url;
+    let html = await response.text();
+    let { document } = parseHTML(html);
 
-    if (args.raw) {
-      const turndown = new TurndownService();
-      turndown.remove(["script", "style"]);
-      console.log(turndown.turndown(html));
+    // Anubis only challenges browser-like clients; refetch as curl to slip past.
+    if (isAnubisChallenge(document)) {
+      const retry = await fetchPageAsCurl(url);
+      finalUrl = retry.url || finalUrl;
+      html = await retry.text();
+      ({ document } = parseHTML(html));
+    }
+
+    if (args.raw || defuddleManglesUrl(new URL(finalUrl))) {
+      console.log(fullPageMarkdown(html));
       return;
     }
 
-    const { document } = parseHTML(html);
-    const { title, content } = await Defuddle(document, args.url, {
+    const { title, content, wordCount } = await Defuddle(document, finalUrl, {
       markdown: true,
+      includeReplies: true,
     });
+
+    // Defuddle found no main content (e.g. an app shell); fall back to the page.
+    if (wordCount === 0) {
+      console.log(fullPageMarkdown(html));
+      return;
+    }
 
     if (title) {
       console.log(`# ${title}\n`);

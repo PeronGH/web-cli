@@ -1,7 +1,7 @@
 // Browser-like request headers so sites serve their standard server-rendered
 // HTML instead of a bot/blocked page. We don't execute JavaScript, so we take
 // the page as a plain navigating browser would receive it.
-const DEFAULT_HEADERS = {
+const BROWSER_HEADERS = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
   Accept:
@@ -18,6 +18,24 @@ const DEFAULT_HEADERS = {
   "Sec-GPC": "1",
 };
 
+// Anubis (https://github.com/TecharoHQ/anubis) gates browser-like clients behind
+// a JavaScript proof-of-work, but scores any non-"Mozilla" User-Agent as benign
+// and lets it straight through. We can't run the PoW, so we retry as curl.
+const CURL_HEADERS = {
+  "User-Agent": "curl/8.7.1",
+  Accept: "*/*",
+};
+
+async function fetchOk(url: string, init: RequestInit): Promise<Response> {
+  const response = await fetch(url, { redirect: "follow", ...init });
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
+    );
+  }
+  return response;
+}
+
 /**
  * Fetch a page with browser-like headers, via the global proxy dispatcher.
  * Follows redirects and throws on a non-2xx response.
@@ -26,15 +44,16 @@ export async function fetchPage(
   url: string,
   init?: RequestInit,
 ): Promise<Response> {
-  const response = await fetch(url, {
-    redirect: "follow",
+  return fetchOk(url, {
     ...init,
-    headers: { ...DEFAULT_HEADERS, ...init?.headers },
+    headers: { ...BROWSER_HEADERS, ...init?.headers },
   });
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
-    );
-  }
-  return response;
+}
+
+/**
+ * Fetch a page as curl, replacing the browser headers entirely. Used to slip
+ * past Anubis, which only challenges browser-like User-Agents.
+ */
+export function fetchPageAsCurl(url: string): Promise<Response> {
+  return fetchOk(url, { headers: CURL_HEADERS });
 }
