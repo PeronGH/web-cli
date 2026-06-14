@@ -24,16 +24,16 @@ export const fetchCommand = defineCommand({
   },
   async run({ args }) {
     const response = await fetchPage(args.url);
-    const { document } = parseHTML(await response.text());
+    const html = await response.text();
 
     if (args.raw) {
       const turndown = new TurndownService();
-      turndown.remove(["script", "style", "noscript"]);
-      const root = document.body ?? document.documentElement;
-      console.log(turndown.turndown(root.outerHTML));
+      turndown.remove(["script", "style"]);
+      console.log(turndown.turndown(html));
       return;
     }
 
+    const { document } = parseHTML(html);
     const { title, content } = await Defuddle(document, args.url, {
       markdown: true,
     });
