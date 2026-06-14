@@ -14,7 +14,7 @@
   },
   "scripts": {
     "start": "bun run src/index.ts",
-    "build": "bun build src/index.ts --target node --outdir dist",
+    "build": "bun build src/index.ts --target node --outdir dist --minify",
     "prepublishOnly": "bun run build",
     "format": "biome format --write .",
     "lint": "biome check .",
