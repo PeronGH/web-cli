@@ -30,14 +30,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+      # Trusted publishing requires Node >= 22.14.0 and npm >= 11.5.1.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           registry-url: https://registry.npmjs.org
+          package-manager-cache: false
 
       - run: bun install --frozen-lockfile
 
-      # Trusted publishing requires a recent npm; the runner's bundled one is older.
+      # The npm bundled with the runner predates OIDC trusted publishing.
       - run: npm install -g npm@latest
 
       - name: Check whether this version is already released
