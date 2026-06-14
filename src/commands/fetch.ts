@@ -13,11 +13,20 @@ function isHtml(contentType: string): boolean {
   );
 }
 
-const TEXT_TYPE_RE =
-  /^application\/(json|xml|javascript|ecmascript|yaml|x-yaml|x-sh|.*\+json|.*\+xml)/;
-
-function isText(contentType: string): boolean {
-  return contentType.startsWith("text/") || TEXT_TYPE_RE.test(contentType);
+// Detect binary content by inspecting the bytes rather than enumerating MIME
+// types per language: a NUL byte never occurs in text, and a high density of
+// U+FFFD replacement chars means the bytes weren't valid UTF-8 text.
+function looksBinary(text: string): boolean {
+  if (text.includes("\u0000")) {
+    return true;
+  }
+  let replacements = 0;
+  for (const char of text) {
+    if (char === "\uFFFD") {
+      replacements++;
+    }
+  }
+  return replacements > text.length * 0.1;
 }
 
 export const fetchCommand = defineCommand({
@@ -44,15 +53,16 @@ export const fetchCommand = defineCommand({
       response.headers.get("content-type") ?? ""
     ).toLowerCase();
 
-    // Already-textual content (Markdown, source code, JSON, plain text) is
-    // printed verbatim; binary content has no useful text representation.
+    // Non-HTML: print textual content (Markdown, source, JSON, ...) verbatim,
+    // and reject binary content, which has no useful text representation.
     if (!isHtml(contentType)) {
-      if (!isText(contentType)) {
+      const text = await response.text();
+      if (looksBinary(text)) {
         throw new Error(
-          `Cannot fetch ${args.url}: unsupported content type "${contentType}"`,
+          `Cannot fetch ${args.url}: content is binary (${contentType})`,
         );
       }
-      console.log(await response.text());
+      console.log(text);
       return;
     }
 
