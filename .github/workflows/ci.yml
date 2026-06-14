@@ -39,9 +39,6 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      # The npm bundled with the runner predates OIDC trusted publishing.
-      - run: npm install -g npm@latest
-
       - name: Check whether this version is already released
         id: version
         run: |
@@ -56,7 +53,7 @@ jobs:
 
       - name: Publish to npm
         if: steps.version.outputs.released == 'false'
-        run: npm publish --access public
+        run: npm publish
 
       - name: Tag and release
         if: steps.version.outputs.released == 'false'
