@@ -23,7 +23,15 @@ async function search(query: string): Promise<SearchResult[]> {
     safesearch: "off",
     summary: "0",
   });
-  const response = await fetchPage(`https://search.brave.com/search?${params}`);
+  const response = await fetchPage(
+    `https://search.brave.com/search?${params}`,
+    {
+      headers: {
+        Referer: "https://search.brave.com/",
+        "Sec-Fetch-Site": "same-origin",
+      },
+    },
+  );
   const { document } = parseHTML(await response.text());
 
   return Array.from(
