@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "A CLI to search and fetch the web",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PeronGH/web-cli.git"
+  },
   "publishConfig": {
     "access": "public"
   },
