@@ -17,12 +17,6 @@ export const fetchCommand = defineCommand({
   },
   async run({ args }) {
     const response = await fetchPage(args.url);
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch ${args.url}: ${response.status} ${response.statusText}`,
-      );
-    }
-
     const { document } = parseHTML(await response.text());
     const { title, content } = await Defuddle(document, args.url, {
       markdown: true,
