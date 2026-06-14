@@ -26,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # create the tag and GitHub release
+      id-token: write # OIDC trusted publishing to npm (no token needed)
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -35,6 +36,9 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - run: bun install --frozen-lockfile
+
+      # Trusted publishing requires a recent npm; the runner's bundled one is older.
+      - run: npm install -g npm@latest
 
       - name: Check whether this version is already released
         id: version
@@ -51,8 +55,6 @@ jobs:
       - name: Publish to npm
         if: steps.version.outputs.released == 'false'
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Tag and release
         if: steps.version.outputs.released == 'false'
