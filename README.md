@@ -5,7 +5,7 @@ A CLI to search and fetch the web.
 ## Install
 
 ```bash
-bun install -g web-cli
+bun install -g @peron_js/web-cli
 ```
 
 ## Usage

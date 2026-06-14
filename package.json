@@ -1,8 +1,11 @@
 {
-  "name": "web-cli",
+  "name": "@peron_js/web-cli",
   "version": "0.1.0",
   "description": "A CLI to search and fetch the web",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "web": "./dist/index.js"
   },

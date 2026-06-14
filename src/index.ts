@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { defineCommand, runMain } from "citty";
 import { EnvHttpProxyAgent, setGlobalDispatcher } from "undici";
-import { description, name, version } from "../package.json";
+import { description, version } from "../package.json";
 import { fetchCommand } from "./commands/fetch.ts";
 import { searchCommand } from "./commands/search.ts";
 
@@ -9,7 +9,7 @@ import { searchCommand } from "./commands/search.ts";
 setGlobalDispatcher(new EnvHttpProxyAgent());
 
 export const main = defineCommand({
-  meta: { name, version, description },
+  meta: { name: "web", version, description },
   subCommands: { search: searchCommand, fetch: fetchCommand },
 });
 
