@@ -23,7 +23,9 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
     "@types/bun": "latest",
-    "citty": "^0.2.2"
+    "citty": "^0.2.2",
+    "defuddle": "^0.18.1",
+    "linkedom": "^0.18.12"
   },
   "peerDependencies": {
     "typescript": "^5"
