@@ -1,6 +1,7 @@
 import { defineCommand } from "citty";
 import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
+import { fetchPage } from "../http.ts";
 
 export const fetchCommand = defineCommand({
   meta: {
@@ -15,7 +16,7 @@ export const fetchCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const response = await fetch(args.url);
+    const response = await fetchPage(args.url);
     if (!response.ok) {
       throw new Error(
         `Failed to fetch ${args.url}: ${response.status} ${response.statusText}`,
