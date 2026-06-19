@@ -16,23 +16,22 @@ type SearchEl = {
   } | null;
 };
 
-const DIRECT_BASE = "https://search.brave.com";
-const PROXY_BASE = "https://brave-proxy.banned.workers.dev";
-
-async function search(query: string, direct: boolean): Promise<SearchResult[]> {
+async function search(query: string): Promise<SearchResult[]> {
   const params = new URLSearchParams({
     q: query,
     source: "web",
     safesearch: "off",
     summary: "0",
   });
-  const base = direct ? DIRECT_BASE : PROXY_BASE;
-  const response = await fetchPage(`${base}/search?${params}`, {
-    headers: {
-      Referer: "https://search.brave.com/",
-      "Sec-Fetch-Site": "same-origin",
+  const response = await fetchPage(
+    `https://search.brave.com/search?${params}`,
+    {
+      headers: {
+        Referer: "https://search.brave.com/",
+        "Sec-Fetch-Site": "same-origin",
+      },
     },
-  });
+  );
   const { document } = parseHTML(await response.text());
 
   return Array.from(
@@ -58,14 +57,9 @@ export const searchCommand = defineCommand({
       description: "The search query",
       required: true,
     },
-    direct: {
-      type: "boolean",
-      description: "Query search.brave.com directly instead of via the proxy",
-      default: false,
-    },
   },
   async run({ args }) {
-    const results = await search(args.query, args.direct);
+    const results = await search(args.query);
     if (results.length === 0) {
       console.error("No results found.");
       return;
