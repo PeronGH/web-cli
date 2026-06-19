@@ -1,3 +1,12 @@
+import { proxyBase } from "./build-config.ts" with { type: "macro" };
+
+// Inlined at bundle time. When empty, requests go straight to the target.
+const PROXY_BASE = proxyBase();
+
+function proxify(url: string): string {
+  return PROXY_BASE === "" ? url : `${PROXY_BASE}/${url}`;
+}
+
 // Browser-like request headers so sites serve their standard server-rendered
 // HTML instead of a bot/blocked page. We don't execute JavaScript, so we take
 // the page as a plain navigating browser would receive it.
@@ -27,7 +36,7 @@ const CURL_HEADERS = {
 };
 
 async function fetchOk(url: string, init: RequestInit): Promise<Response> {
-  const response = await fetch(url, { redirect: "follow", ...init });
+  const response = await fetch(proxify(url), { redirect: "follow", ...init });
   if (!response.ok) {
     throw new Error(
       `Failed to fetch ${url}: ${response.status} ${response.statusText}`,

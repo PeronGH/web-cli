@@ -53,6 +53,8 @@ jobs:
 
       - name: Publish to npm
         if: steps.version.outputs.released == 'false'
+        env:
+          PROXY_BASE: ${{ vars.PROXY_BASE }}
         run: npm publish
 
       - name: Tag and release

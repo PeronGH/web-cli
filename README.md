@@ -20,3 +20,14 @@ web fetch <url>      # fetch a URL and print its main content as Markdown
 `fetch` honors the `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` environment variables.
 
 Run `web --help` or `web <command> --help` for details.
+
+## Building
+
+Set `PROXY_BASE` at build time to route every request through a URL-prefix proxy
+(`<PROXY_BASE>/<url>`). Redirects are followed automatically, so the proxy must
+rewrite any `Location` it returns to stay within the proxy. Leave it unset to
+fetch targets directly.
+
+```bash
+PROXY_BASE=https://proxy.example bun run build
+```
