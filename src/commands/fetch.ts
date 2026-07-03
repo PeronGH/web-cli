@@ -124,9 +124,13 @@ export const fetchCommand = defineCommand({
       return;
     }
 
+    // useAsync: false stops site-specific extractors from fetching third-party
+    // sources themselves (e.g. old.reddit.com), which would bypass our headers
+    // and proxy and mostly get blocked.
     const { title, content, wordCount } = await Defuddle(document, finalUrl, {
       markdown: true,
       includeReplies: true,
+      useAsync: false,
     });
 
     // Defuddle found no main content (e.g. an app shell); fall back to the page.
