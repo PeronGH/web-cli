@@ -53,6 +53,8 @@ function isStackExchange(hostname: string): boolean {
 // Hosts and paths where Defuddle is known to mangle the extracted content, so we
 // convert the whole page instead.
 function defuddleManglesUrl(url: URL): boolean {
+  // Defuddle reduces eddrit listings to a bare title and drops comment threads.
+  if (url.hostname === "eddrit.com") return true;
   if (isStackExchange(url.hostname) && SE_QUESTION.test(url.pathname))
     return true;
   if (url.hostname === "xdaforums.com" && url.pathname.startsWith("/t/"))
