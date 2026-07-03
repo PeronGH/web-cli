@@ -7,6 +7,17 @@ function proxify(url: string): string {
   return PROXY_BASE === "" ? url : `${PROXY_BASE}/${url}`;
 }
 
+/**
+ * The response's final URL (after redirects) with the proxy prefix stripped,
+ * so the proxy never leaks into URL-based logic like link resolution.
+ */
+export function responseUrl(response: Response): string {
+  const url = response.url;
+  return PROXY_BASE !== "" && url.startsWith(`${PROXY_BASE}/`)
+    ? url.slice(PROXY_BASE.length + 1)
+    : url;
+}
+
 // Browser-like request headers so sites serve their standard server-rendered
 // HTML instead of a bot/blocked page. We don't execute JavaScript, so we take
 // the page as a plain navigating browser would receive it.

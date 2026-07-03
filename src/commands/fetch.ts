@@ -2,7 +2,7 @@ import { defineCommand } from "citty";
 import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
-import { fetchPage, fetchPageAsCurl } from "../http.ts";
+import { fetchPage, fetchPageAsCurl, responseUrl } from "../http.ts";
 import { rewriteUrl } from "../rewrite.ts";
 
 // A missing content type is treated as HTML, matching how browsers sniff pages.
@@ -120,14 +120,14 @@ export const fetchCommand = defineCommand({
       return;
     }
 
-    let finalUrl = response.url || url;
+    let finalUrl = responseUrl(response) || url;
     let html = await response.text();
     let { document } = parseHTML(html);
 
     // Anubis only challenges browser-like clients; refetch as curl to slip past.
     if (isAnubisChallenge(document)) {
       const retry = await fetchPageAsCurl(url);
-      finalUrl = retry.url || finalUrl;
+      finalUrl = responseUrl(retry) || finalUrl;
       html = await retry.text();
       ({ document } = parseHTML(html));
     }
