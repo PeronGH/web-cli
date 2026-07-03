@@ -38,11 +38,12 @@ const URL_REWRITES: readonly (readonly [UrlMatcher, UrlRewrite])[] = [
     },
   ],
   [
-    // reddit.com 403s plain fetches; safereddit.com is a Redlib instance
-    // (SFW-only) that serves the same paths as clean server-rendered HTML.
+    // reddit.com 403s plain fetches; eddrit serves the same paths as clean
+    // server-rendered HTML, and its hostname doesn't contain "reddit.com",
+    // which would trip Defuddle's reddit extractor.
     (url) => /(^|\.)reddit\.com$/.test(url.hostname),
     (url) => {
-      url.hostname = "safereddit.com";
+      url.hostname = "eddrit.com";
     },
   ],
 ];
