@@ -37,6 +37,14 @@ const URL_REWRITES: readonly (readonly [UrlMatcher, UrlRewrite])[] = [
       url.hostname = "nitter.tiekoetter.com";
     },
   ],
+  [
+    // reddit.com 403s plain fetches; safereddit.com is a Redlib instance
+    // (SFW-only) that serves the same paths as clean server-rendered HTML.
+    (url) => /(^|\.)reddit\.com$/.test(url.hostname),
+    (url) => {
+      url.hostname = "safereddit.com";
+    },
+  ],
 ];
 
 export function rewriteUrl(url: string): string {

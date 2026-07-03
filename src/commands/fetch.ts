@@ -30,7 +30,6 @@ function looksBinary(text: string): boolean {
   return replacements > text.length * 0.1;
 }
 
-const REDDIT_LISTING = /^\/(r|u|user)\/[^/]+(\/[^/]+)?\/?$/;
 const SE_QUESTION = /^\/questions\/\d+(\/|$)/;
 const GITHUB_ISSUE = /^\/[^/]+\/[^/]+\/issues\/\d+/;
 
@@ -54,11 +53,6 @@ function isStackExchange(hostname: string): boolean {
 // Hosts and paths where Defuddle is known to mangle the extracted content, so we
 // convert the whole page instead.
 function defuddleManglesUrl(url: URL): boolean {
-  if (
-    /(^|\.)reddit\.com$/.test(url.hostname) &&
-    REDDIT_LISTING.test(url.pathname)
-  )
-    return true;
   if (isStackExchange(url.hostname) && SE_QUESTION.test(url.pathname))
     return true;
   if (url.hostname === "xdaforums.com" && url.pathname.startsWith("/t/"))
