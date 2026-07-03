@@ -2,7 +2,7 @@ import { defineCommand } from "citty";
 import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
-import { fetchPage, fetchPageAsCurl, responseUrl } from "../http.ts";
+import { fetchPage, fetchPageAsCurl } from "../http.ts";
 import { rewriteUrl } from "../rewrite.ts";
 
 // A missing content type is treated as HTML, matching how browsers sniff pages.
@@ -102,33 +102,26 @@ export const fetchCommand = defineCommand({
   },
   async run({ args }) {
     const url = rewriteUrl(args.url);
-    const response = await fetchPage(url);
-    const contentType = (
-      response.headers.get("content-type") ?? ""
-    ).toLowerCase();
+    const page = await fetchPage(url);
 
     // Non-HTML: print textual content (Markdown, source, JSON, ...) verbatim,
     // and reject binary content, which has no useful text representation.
-    if (!isHtml(contentType)) {
-      const text = await response.text();
-      if (looksBinary(text)) {
+    if (!isHtml(page.contentType)) {
+      if (looksBinary(page.body)) {
         throw new Error(
-          `Cannot fetch ${url}: content is binary (${contentType})`,
+          `Cannot fetch ${url}: content is binary (${page.contentType})`,
         );
       }
-      console.log(text);
+      console.log(page.body);
       return;
     }
 
-    let finalUrl = responseUrl(response) || url;
-    let html = await response.text();
+    let { url: finalUrl, body: html } = page;
     let { document } = parseHTML(html);
 
     // Anubis only challenges browser-like clients; refetch as curl to slip past.
     if (isAnubisChallenge(document)) {
-      const retry = await fetchPageAsCurl(url);
-      finalUrl = responseUrl(retry) || finalUrl;
-      html = await retry.text();
+      ({ url: finalUrl, body: html } = await fetchPageAsCurl(url));
       ({ document } = parseHTML(html));
     }
 

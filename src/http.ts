@@ -7,15 +7,19 @@ function proxify(url: string): string {
   return PROXY_BASE === "" ? url : `${PROXY_BASE}/${url}`;
 }
 
-/**
- * The response's final URL (after redirects) with the proxy prefix stripped,
- * so the proxy never leaks into URL-based logic like link resolution.
- */
-export function responseUrl(response: Response): string {
-  const url = response.url;
+function deproxify(url: string): string {
   return PROXY_BASE !== "" && url.startsWith(`${PROXY_BASE}/`)
     ? url.slice(PROXY_BASE.length + 1)
     : url;
+}
+
+/** A fetched page. URLs are target URLs; the proxy never appears in one. */
+export interface Page {
+  /** Final URL after redirects. */
+  url: string;
+  /** Lowercased Content-Type header, "" when absent. */
+  contentType: string;
+  body: string;
 }
 
 // Browser-like request headers so sites serve their standard server-rendered
@@ -46,24 +50,28 @@ const CURL_HEADERS = {
   Accept: "*/*",
 };
 
-async function fetchOk(url: string, init: RequestInit): Promise<Response> {
+async function fetchOk(url: string, init: RequestInit): Promise<Page> {
   const response = await fetch(proxify(url), { redirect: "follow", ...init });
   if (!response.ok) {
     throw new Error(
       `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
     );
   }
-  return response;
+  return {
+    url: deproxify(response.url) || url,
+    contentType: (response.headers.get("content-type") ?? "").toLowerCase(),
+    body: await response.text(),
+  };
 }
 
 /**
- * Fetch a page with browser-like headers, via the global proxy dispatcher.
- * Follows redirects and throws on a non-2xx response.
+ * Fetch a page with browser-like headers, via the build-time proxy when one
+ * is configured. Follows redirects and throws on a non-2xx response.
  */
 export async function fetchPage(
   url: string,
   init?: RequestInit,
-): Promise<Response> {
+): Promise<Page> {
   return fetchOk(url, {
     ...init,
     headers: { ...BROWSER_HEADERS, ...init?.headers },
@@ -74,6 +82,6 @@ export async function fetchPage(
  * Fetch a page as curl, replacing the browser headers entirely. Used to slip
  * past Anubis, which only challenges browser-like User-Agents.
  */
-export function fetchPageAsCurl(url: string): Promise<Response> {
+export function fetchPageAsCurl(url: string): Promise<Page> {
   return fetchOk(url, { headers: CURL_HEADERS });
 }
