@@ -23,10 +23,12 @@ Run `web --help` or `web <command> --help` for details.
 
 ## Building
 
-Set `PROXY_BASE` at build time to route every request through a URL-prefix proxy
-(`<PROXY_BASE>/<url>`). Redirects are followed automatically, so the proxy must
-rewrite any `Location` it returns to stay within the proxy. Leave it unset to
-fetch targets directly.
+Set `PROXY_BASE` at build time to configure a URL-prefix proxy
+(`<PROXY_BASE>/<url>`). `search` always routes through it; `fetch` goes direct
+by default and opts in with `--proxy` (the flag only exists in builds
+configured with a proxy). Redirects are followed automatically, so the proxy
+must rewrite any `Location` it returns to stay within the proxy. Leave it unset
+to fetch targets directly.
 
 ```bash
 PROXY_BASE=https://proxy.example bun run build

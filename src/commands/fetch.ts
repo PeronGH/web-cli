@@ -2,7 +2,7 @@ import { defineCommand } from "citty";
 import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
-import { fetchPage, fetchPageAsCurl } from "../http.ts";
+import { fetchPage, fetchPageAsCurl, PROXY_AVAILABLE } from "../http.ts";
 import { rewriteUrl } from "../rewrite.ts";
 
 // A missing content type is treated as HTML, matching how browsers sniff pages.
@@ -95,10 +95,19 @@ export const fetchCommand = defineCommand({
         "Convert the whole page to Markdown without extracting the main content",
       default: false,
     },
+    // Only builds configured with a proxy offer the flag (or list it in help).
+    ...(PROXY_AVAILABLE && {
+      proxy: {
+        type: "boolean" as const,
+        description: "Route the request through the build-time proxy",
+        default: false,
+      },
+    }),
   },
   async run({ args }) {
+    const proxy = args.proxy === true;
     const url = rewriteUrl(args.url);
-    const page = await fetchPage(url);
+    const page = await fetchPage(url, { proxy });
 
     // Non-HTML: print textual content (Markdown, source, JSON, ...) verbatim,
     // and reject binary content, which has no useful text representation.
@@ -117,7 +126,7 @@ export const fetchCommand = defineCommand({
 
     // Anubis only challenges browser-like clients; refetch as curl to slip past.
     if (isAnubisChallenge(document)) {
-      ({ url: finalUrl, body: html } = await fetchPageAsCurl(url));
+      ({ url: finalUrl, body: html } = await fetchPageAsCurl(url, proxy));
       ({ document } = parseHTML(html));
     }
 
