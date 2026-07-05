@@ -1,6 +1,4 @@
 import { defineCommand } from "citty";
-import { parseHTML } from "linkedom";
-import { fetchPage } from "../http.ts";
 
 type SearchResult = {
   title: string;
@@ -8,39 +6,26 @@ type SearchResult = {
   snippet: string;
 };
 
-/** Structural type for the linkedom nodes we touch. */
-type SearchEl = {
-  querySelector(selector: string): {
-    textContent: string | null;
-    getAttribute(name: string): string | null;
-  } | null;
-};
+const SEARX_INSTANCE = "https://search.banned.dynv6.net";
 
 async function search(query: string): Promise<SearchResult[]> {
-  const params = new URLSearchParams({
-    q: query,
-    source: "web",
-    safesearch: "off",
-    summary: "0",
+  const params = new URLSearchParams({ q: query, format: "json" });
+  const response = await fetch(`${SEARX_INSTANCE}/search?${params}`, {
+    headers: { Accept: "application/json" },
   });
-  const page = await fetchPage(`https://search.brave.com/search?${params}`, {
-    headers: {
-      Referer: "https://search.brave.com/",
-      "Sec-Fetch-Site": "same-origin",
-    },
-  });
-  const { document } = parseHTML(page.body);
-
-  return Array.from(
-    document.querySelectorAll('div.snippet[data-type="web"]'),
-    (item: SearchEl) => ({
-      title:
-        item.querySelector(".search-snippet-title")?.textContent?.trim() ?? "",
-      url: item.querySelector("a.l1")?.getAttribute("href") ?? "",
-      snippet:
-        item.querySelector(".generic-snippet")?.textContent?.trim() ?? "",
-    }),
-  );
+  if (!response.ok) {
+    throw new Error(
+      `Search request failed: ${response.status} ${response.statusText}`,
+    );
+  }
+  const { results } = (await response.json()) as {
+    results: { title?: string; url?: string; content?: string }[];
+  };
+  return results.map(({ title, url, content }) => ({
+    title: title?.trim() ?? "",
+    url: url?.trim() ?? "",
+    snippet: content?.trim() ?? "",
+  }));
 }
 
 export const searchCommand = defineCommand({
