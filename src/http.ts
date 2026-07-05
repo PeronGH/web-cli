@@ -1,30 +1,3 @@
-import { proxyBase } from "./build-config.ts" with { type: "macro" };
-
-// Inlined at bundle time. When empty, requests go straight to the target.
-const PROXY_BASE = proxyBase();
-
-/** Whether a proxy was configured at build time. */
-export const PROXY_AVAILABLE = PROXY_BASE !== "";
-
-function proxify(url: string, proxy: boolean): string {
-  return proxy && PROXY_AVAILABLE ? `${PROXY_BASE}/${url}` : url;
-}
-
-function deproxify(url: string): string {
-  return PROXY_BASE !== "" && url.startsWith(`${PROXY_BASE}/`)
-    ? url.slice(PROXY_BASE.length + 1)
-    : url;
-}
-
-/** A fetched page. URLs are target URLs; the proxy never appears in one. */
-export interface Page {
-  /** Final URL after redirects. */
-  url: string;
-  /** Lowercased Content-Type header, "" when absent. */
-  contentType: string;
-  body: string;
-}
-
 // Browser-like request headers so sites serve their standard server-rendered
 // HTML instead of a bot/blocked page. We don't execute JavaScript, so we take
 // the page as a plain navigating browser would receive it.
@@ -53,31 +26,30 @@ const CURL_HEADERS = {
   Accept: "*/*",
 };
 
-async function fetchOk(
-  url: string,
-  proxy: boolean,
-  init: RequestInit,
-): Promise<Page> {
-  const response = await fetch(proxify(url, proxy), {
-    redirect: "follow",
-    ...init,
-  });
+/** A fetched page. */
+export interface Page {
+  /** Final URL after redirects. */
+  url: string;
+  /** Lowercased Content-Type header, "" when absent. */
+  contentType: string;
+  body: string;
+}
+
+async function fetchOk(url: string, init: RequestInit): Promise<Page> {
+  const response = await fetch(url, { redirect: "follow", ...init });
   if (!response.ok) {
     throw new Error(
       `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
     );
   }
   return {
-    url: deproxify(response.url) || url,
+    url: response.url || url,
     contentType: (response.headers.get("content-type") ?? "").toLowerCase(),
     body: await response.text(),
   };
 }
 
-export interface FetchPageOptions extends RequestInit {
-  /** Route through the build-time proxy. Ignored when none is configured. */
-  proxy?: boolean;
-}
+export interface FetchPageOptions extends RequestInit {}
 
 /**
  * Fetch a page with browser-like headers. Follows redirects and throws on a
@@ -85,9 +57,9 @@ export interface FetchPageOptions extends RequestInit {
  */
 export async function fetchPage(
   url: string,
-  { proxy = false, ...init }: FetchPageOptions = {},
+  init: FetchPageOptions = {},
 ): Promise<Page> {
-  return fetchOk(url, proxy, {
+  return fetchOk(url, {
     ...init,
     headers: { ...BROWSER_HEADERS, ...init.headers },
   });
@@ -97,6 +69,6 @@ export async function fetchPage(
  * Fetch a page as curl, replacing the browser headers entirely. Used to slip
  * past Anubis, which only challenges browser-like User-Agents.
  */
-export function fetchPageAsCurl(url: string, proxy = false): Promise<Page> {
-  return fetchOk(url, proxy, { headers: CURL_HEADERS });
+export function fetchPageAsCurl(url: string): Promise<Page> {
+  return fetchOk(url, { headers: CURL_HEADERS });
 }

@@ -24,7 +24,6 @@ async function search(query: string): Promise<SearchResult[]> {
     summary: "0",
   });
   const page = await fetchPage(`https://search.brave.com/search?${params}`, {
-    proxy: true,
     headers: {
       Referer: "https://search.brave.com/",
       "Sec-Fetch-Site": "same-origin",
