@@ -39,9 +39,22 @@ export const searchCommand = defineCommand({
       description: "The search query",
       required: true,
     },
+    limit: {
+      type: "string",
+      description: "Maximum number of results to print",
+    },
   },
   async run({ args }) {
-    const results = await search(args.query);
+    let results = await search(args.query);
+    if (args.limit !== undefined) {
+      const limit = Number.parseInt(args.limit, 10);
+      if (!Number.isFinite(limit) || limit < 0) {
+        throw new Error(
+          `--limit must be a non-negative integer, got ${args.limit}`,
+        );
+      }
+      results = results.slice(0, limit);
+    }
     if (results.length === 0) {
       console.error("No results found.");
       return;
