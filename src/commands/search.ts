@@ -60,7 +60,9 @@ export const searchCommand = defineCommand({
       return;
     }
     results.forEach(({ title, url, snippet }, i) => {
-      console.log(`${i + 1}. ${title}\n   ${url}\n   ${snippet}\n`);
+      const number = i + 1;
+      const indent = " ".repeat(String(number).length + 2);
+      console.log(`${number}. [${title}](${url})\n${indent}${snippet}\n`);
     });
   },
 });
