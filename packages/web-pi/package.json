@@ -1,6 +1,6 @@
 {
   "name": "@peron_js/web-pi",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Web search and fetch tools for the pi coding agent",
   "type": "module",
   "keywords": [
@@ -26,7 +26,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@peron_js/web-cli": "^0.7.2"
+    "@peron_js/web-cli": "^0.8.0"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

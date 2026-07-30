@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "web-cli",
+      "name": "web-cli-workspace",
       "devDependencies": {
         "@biomejs/biome": "^2.5.0",
         "@types/bun": "latest",
@@ -12,7 +12,7 @@
     },
     "packages/web-cli": {
       "name": "@peron_js/web-cli",
-      "version": "0.7.2",
+      "version": "0.8.0",
       "bin": {
         "web": "./dist/index.js",
       },
@@ -30,9 +30,9 @@
     },
     "packages/web-pi": {
       "name": "@peron_js/web-pi",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
-        "@peron_js/web-cli": "workspace:*",
+        "@peron_js/web-cli": "^0.8.0",
       },
       "peerDependencies": {
         "@earendil-works/pi-coding-agent": "*",
