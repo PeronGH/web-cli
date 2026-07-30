@@ -18,4 +18,5 @@ pi install npm:@peron_js/web-pi
   to 2000 lines or 50KB
 
 Both honor the `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` environment variables
-and support cancellation.
+and support cancellation. In the TUI each result collapses to a one-line summary;
+expand it to preview the titles or the fetched Markdown.
