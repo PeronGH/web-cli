@@ -1,44 +1,19 @@
 {
-  "name": "@peron_js/web-cli",
-  "version": "0.7.2",
-  "description": "A CLI to search and fetch the web",
+  "name": "web-cli-workspace",
+  "private": true,
   "type": "module",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/PeronGH/web-cli.git"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "bin": {
-    "web": "./dist/index.js"
-  },
-  "files": [
-    "dist"
+  "workspaces": [
+    "packages/*"
   ],
-  "engines": {
-    "node": ">=18"
-  },
   "scripts": {
-    "start": "bun run src/index.ts",
-    "build": "bun build src/index.ts --target node --outdir dist --minify",
-    "prepublishOnly": "bun run build",
+    "build": "bun run --filter '*' build",
     "format": "biome format --write .",
     "lint": "biome check .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun run --filter '*' typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
     "@types/bun": "latest",
-    "@types/turndown": "^5.0.6",
-    "citty": "^0.2.2",
-    "defuddle": "^0.18.1",
-    "linkedom": "^0.18.12",
-    "mathml-to-latex": "^1.8.0",
-    "turndown": "^7.2.4",
-    "undici": "^8.4.1"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^7.0.2"
   }
 }

@@ -1,0 +1,35 @@
+{
+  "name": "@peron_js/web-pi",
+  "version": "0.1.0",
+  "description": "Web search and fetch tools for the pi coding agent",
+  "type": "module",
+  "keywords": [
+    "pi-package"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PeronGH/web-cli.git",
+    "directory": "packages/web-pi"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "pi": {
+    "extensions": [
+      "./src/extension.ts"
+    ]
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@peron_js/web-cli": "^0.7.2"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  }
+}

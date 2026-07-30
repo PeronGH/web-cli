@@ -1,22 +1,29 @@
 # web-cli
 
-[![npm](https://img.shields.io/npm/v/@peron_js/web-cli)](https://www.npmjs.com/package/@peron_js/web-cli)
+A CLI to search and fetch the web, plus the same tools for the [pi](https://pi.dev) coding agent.
 
-A CLI to search and fetch the web.
+| Package | Description |
+| --- | --- |
+| [`@peron_js/web-cli`](packages/web-cli) | The `web` CLI and the library it is built on |
+| [`@peron_js/web-pi`](packages/web-pi) | Pi package exposing `web_search` and `web_fetch` tools |
 
-## Install
+The CLI owns argument parsing and printing; the library exports `search()` and
+`fetchAsMarkdown()`. The pi package is a thin adapter over that library, so
+installing the CLI never pulls in pi, and installing the pi package never pulls
+in the CLI's argument parser.
+
+## Development
 
 ```bash
-bun install -g @peron_js/web-cli
+bun install
+bun run build       # bundles the CLI bin and the library entry
+bun run lint
+bun run typecheck
 ```
 
-## Usage
+Try the pi tools from the checkout (requires `bun run build` first, because pi
+resolves the library through its Node entry):
 
 ```bash
-web search <query>   # search the web for a query
-web fetch <url>      # fetch a URL and print its main content as Markdown
+pi -e packages/web-pi/src/extension.ts
 ```
-
-`fetch` honors the `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` environment variables.
-
-Run `web --help` or `web <command> --help` for details.

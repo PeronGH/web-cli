@@ -27,6 +27,14 @@ jobs:
     permissions:
       contents: write # create the tag and GitHub release
       id-token: write # OIDC trusted publishing to npm (no token needed)
+    strategy:
+      max-parallel: 1 # publish the library before the package that depends on it
+      matrix:
+        include:
+          - dir: packages/web-cli
+            tag-prefix: v
+          - dir: packages/web-pi
+            tag-prefix: web-pi-v
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -38,21 +46,24 @@ jobs:
           package-manager-cache: false
 
       - run: bun install --frozen-lockfile
+      - run: bun run build
 
       - name: Check whether this version is already released
         id: version
+        working-directory: ${{ matrix.dir }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+          echo "tag=${{ matrix.tag-prefix }}$VERSION" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/${{ matrix.tag-prefix }}$VERSION" >/dev/null 2>&1; then
             echo "released=true" >> "$GITHUB_OUTPUT"
-            echo "v$VERSION already tagged — nothing to release."
+            echo "${{ matrix.tag-prefix }}$VERSION already tagged — nothing to release."
           else
             echo "released=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Publish to npm
         if: steps.version.outputs.released == 'false'
+        working-directory: ${{ matrix.dir }}
         env:
           PROXY_BASE: ${{ vars.PROXY_BASE }}
         run: npm publish

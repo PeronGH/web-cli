@@ -1,12 +1,8 @@
 #!/usr/bin/env node
 import { type ArgsDef, type CommandDef, defineCommand, runMain } from "citty";
-import { EnvHttpProxyAgent, setGlobalDispatcher } from "undici";
-import { description, version } from "../package.json";
-import { fetchCommand } from "./commands/fetch.ts";
-import { searchCommand } from "./commands/search.ts";
-
-// Route fetch through HTTP_PROXY / HTTPS_PROXY, honoring NO_PROXY.
-setGlobalDispatcher(new EnvHttpProxyAgent());
+import { description, version } from "../../package.json";
+import { fetchCommand } from "./fetch.ts";
+import { searchCommand } from "./search.ts";
 
 // citty renders a runtime error thrown from `run` as the whole Error object,
 // stack trace and all. Print just the message and exit non-zero instead;

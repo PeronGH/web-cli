@@ -1,3 +1,5 @@
+import { EnvHttpProxyAgent } from "undici";
+
 // Browser-like request headers so sites serve their standard server-rendered
 // HTML instead of a bot/blocked page. We don't execute JavaScript, so we take
 // the page as a plain navigating browser would receive it.
@@ -26,6 +28,22 @@ const CURL_HEADERS = {
   Accept: "*/*",
 };
 
+// Node's fetch ignores HTTP_PROXY / HTTPS_PROXY / NO_PROXY without a dispatcher
+// that implements them. We attach one per request instead of installing a global
+// dispatcher, so importing this module never changes the host process — it is
+// loaded inside pi as well as in our own CLI. Bun honors the proxy environment
+// natively and ignores the extra option.
+let proxyAgent: EnvHttpProxyAgent | undefined;
+
+/** `fetch` that honors the proxy environment variables. */
+export function httpFetch(
+  url: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  proxyAgent ??= new EnvHttpProxyAgent();
+  return fetch(url, { ...init, dispatcher: proxyAgent } as RequestInit);
+}
+
 /** A fetched page. */
 export interface Page {
   /** Final URL after redirects. */
@@ -36,7 +54,7 @@ export interface Page {
 }
 
 async function fetchOk(url: string, init: RequestInit): Promise<Page> {
-  const response = await fetch(url, { redirect: "follow", ...init });
+  const response = await httpFetch(url, { redirect: "follow", ...init });
   if (!response.ok) {
     throw new Error(
       `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
@@ -69,6 +87,9 @@ export async function fetchPage(
  * Fetch a page as curl, replacing the browser headers entirely. Used to slip
  * past Anubis, which only challenges browser-like User-Agents.
  */
-export function fetchPageAsCurl(url: string): Promise<Page> {
-  return fetchOk(url, { headers: CURL_HEADERS });
+export function fetchPageAsCurl(
+  url: string,
+  init: FetchPageOptions = {},
+): Promise<Page> {
+  return fetchOk(url, { ...init, headers: CURL_HEADERS });
 }

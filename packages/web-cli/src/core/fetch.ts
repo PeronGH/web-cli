@@ -1,9 +1,8 @@
-import { defineCommand } from "citty";
 import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
-import { fetchPage, fetchPageAsCurl } from "../http.ts";
-import { rewriteUrl } from "../rewrite.ts";
+import { fetchPage, fetchPageAsCurl } from "./http.ts";
+import { rewriteUrl } from "./rewrite.ts";
 
 // A missing content type is treated as HTML, matching how browsers sniff pages.
 function isHtml(contentType: string): boolean {
@@ -78,72 +77,60 @@ function isAnubisChallenge(document: {
   return document.getElementById("anubis_challenge") !== null;
 }
 
-export const fetchCommand = defineCommand({
-  meta: {
-    name: "fetch",
-    description: "Fetch a URL and print its main content as Markdown",
-  },
-  args: {
-    url: {
-      type: "positional",
-      description: "The URL to fetch",
-      required: true,
-    },
-    raw: {
-      type: "boolean",
-      description:
-        "Convert the whole page to Markdown without extracting the main content",
-      default: false,
-    },
-  },
-  async run({ args }) {
-    const url = rewriteUrl(args.url);
-    const page = await fetchPage(url);
+export interface FetchAsMarkdownOptions {
+  /** Convert the whole page instead of extracting the main content. */
+  raw?: boolean;
+  signal?: AbortSignal;
+}
 
-    // Non-HTML: print textual content (Markdown, source, JSON, ...) verbatim,
-    // and reject binary content, which has no useful text representation.
-    if (!isHtml(page.contentType)) {
-      if (looksBinary(page.body)) {
-        throw new Error(
-          `Cannot fetch ${url}: content is binary (${page.contentType})`,
-        );
-      }
-      console.log(page.body);
-      return;
+/**
+ * Fetch a URL and return its content as Markdown. Textual non-HTML content is
+ * returned verbatim; binary content throws.
+ */
+export async function fetchAsMarkdown(
+  target: string,
+  { raw = false, signal }: FetchAsMarkdownOptions = {},
+): Promise<string> {
+  const url = rewriteUrl(target);
+  const page = await fetchPage(url, { signal });
+
+  // Non-HTML: return textual content (Markdown, source, JSON, ...) verbatim,
+  // and reject binary content, which has no useful text representation.
+  if (!isHtml(page.contentType)) {
+    if (looksBinary(page.body)) {
+      throw new Error(
+        `Cannot fetch ${url}: content is binary (${page.contentType})`,
+      );
     }
+    return page.body;
+  }
 
-    let { url: finalUrl, body: html } = page;
-    let { document } = parseHTML(html);
+  let { url: finalUrl, body: html } = page;
+  let { document } = parseHTML(html);
 
-    // Anubis only challenges browser-like clients; refetch as curl to slip past.
-    if (isAnubisChallenge(document)) {
-      ({ url: finalUrl, body: html } = await fetchPageAsCurl(url));
-      ({ document } = parseHTML(html));
-    }
+  // Anubis only challenges browser-like clients; refetch as curl to slip past.
+  if (isAnubisChallenge(document)) {
+    ({ url: finalUrl, body: html } = await fetchPageAsCurl(url, { signal }));
+    ({ document } = parseHTML(html));
+  }
 
-    if (args.raw || defuddleManglesUrl(new URL(finalUrl))) {
-      console.log(fullPageMarkdown(html));
-      return;
-    }
+  if (raw || defuddleManglesUrl(new URL(finalUrl))) {
+    return fullPageMarkdown(html);
+  }
 
-    // useAsync: false stops site-specific extractors from fetching third-party
-    // sources themselves (e.g. old.reddit.com), which would bypass our headers
-    // and mostly get blocked.
-    const { title, content, wordCount } = await Defuddle(document, finalUrl, {
-      markdown: true,
-      includeReplies: true,
-      useAsync: false,
-    });
+  // useAsync: false stops site-specific extractors from fetching third-party
+  // sources themselves (e.g. old.reddit.com), which would bypass our headers
+  // and mostly get blocked.
+  const { title, content, wordCount } = await Defuddle(document, finalUrl, {
+    markdown: true,
+    includeReplies: true,
+    useAsync: false,
+  });
 
-    // Defuddle found no main content (e.g. an app shell); fall back to the page.
-    if (wordCount === 0) {
-      console.log(fullPageMarkdown(html));
-      return;
-    }
+  // Defuddle found no main content (e.g. an app shell); fall back to the page.
+  if (wordCount === 0) {
+    return fullPageMarkdown(html);
+  }
 
-    if (title) {
-      console.log(`# ${title}\n`);
-    }
-    console.log(content);
-  },
-});
+  return title ? `# ${title}\n\n${content}` : content;
+}
