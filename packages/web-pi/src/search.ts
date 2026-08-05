@@ -12,7 +12,7 @@ const Params = Type.Object({
   query: Type.String({ description: "The search query" }),
   limit: Type.Optional(
     Type.Integer({
-      minimum: 1,
+      minimum: 10,
       description: "Maximum number of results to return",
     }),
   ),
