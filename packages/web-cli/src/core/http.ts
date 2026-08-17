@@ -1,28 +1,15 @@
 import { EnvHttpProxyAgent } from "undici";
 
-// Browser-like request headers so sites serve their standard server-rendered
-// HTML instead of a bot/blocked page. We don't execute JavaScript, so we take
-// the page as a plain navigating browser would receive it.
-const BROWSER_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-  Accept:
-    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-  "Accept-Language": "en-US,en;q=0.9",
-  "sec-ch-ua": '"Brave";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
-  "sec-ch-ua-mobile": "?0",
-  "sec-ch-ua-platform": '"Windows"',
-  "Sec-Fetch-Dest": "document",
-  "Sec-Fetch-Mode": "navigate",
-  "Sec-Fetch-Site": "none",
-  "Sec-Fetch-User": "?1",
-  "Upgrade-Insecure-Requests": "1",
-  "Sec-GPC": "1",
-};
+// Kitesurf is a stateless headless browser running on Cloudflare Workers: it
+// loads the target URL, runs its JavaScript and returns the serialized DOM. Every
+// page goes through it, so we get browser-rendered HTML — client-side rendered
+// pages included — without spoofing browser headers ourselves, and the response
+// is always HTML no matter what the target served.
+const KITESURF_HTML = "https://kitesurf.cloudflare.app/html";
 
 // Anubis (https://github.com/TecharoHQ/anubis) gates browser-like clients behind
 // a JavaScript proof-of-work, but scores any non-"Mozilla" User-Agent as benign
-// and lets it straight through. We can't run the PoW, so we retry as curl.
+// and lets it straight through. Retrying as curl is cheaper than solving it.
 const CURL_HEADERS = {
   "User-Agent": "curl/8.7.1",
   Accept: "*/*",
@@ -44,52 +31,39 @@ export function httpFetch(
   return fetch(url, { ...init, dispatcher: proxyAgent } as RequestInit);
 }
 
-/** A fetched page. */
-export interface Page {
-  /** Final URL after redirects. */
-  url: string;
-  /** Lowercased Content-Type header, "" when absent. */
-  contentType: string;
-  body: string;
+export interface FetchHtmlOptions extends RequestInit {}
+
+/** Fetch a URL as browser-rendered HTML. Throws when the request is rejected. */
+export async function fetchHtml(
+  url: string,
+  init: FetchHtmlOptions = {},
+): Promise<string> {
+  const endpoint = `${KITESURF_HTML}?url=${encodeURIComponent(url)}`;
+  const response = await httpFetch(endpoint, init);
+  if (!response.ok) {
+    const detail = (await response.text()).trim();
+    throw new Error(`Failed to fetch ${url}: ${response.status} ${detail}`);
+  }
+  return response.text();
 }
 
-async function fetchOk(url: string, init: RequestInit): Promise<Page> {
-  const response = await httpFetch(url, { redirect: "follow", ...init });
+/**
+ * Fetch a URL directly as curl, bypassing the browser. Used to slip past Anubis,
+ * which only challenges browser-like User-Agents.
+ */
+export async function fetchHtmlAsCurl(
+  url: string,
+  init: FetchHtmlOptions = {},
+): Promise<string> {
+  const response = await httpFetch(url, {
+    redirect: "follow",
+    ...init,
+    headers: CURL_HEADERS,
+  });
   if (!response.ok) {
     throw new Error(
       `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
     );
   }
-  return {
-    url: response.url || url,
-    contentType: (response.headers.get("content-type") ?? "").toLowerCase(),
-    body: await response.text(),
-  };
-}
-
-export interface FetchPageOptions extends RequestInit {}
-
-/**
- * Fetch a page with browser-like headers. Follows redirects and throws on a
- * non-2xx response.
- */
-export async function fetchPage(
-  url: string,
-  init: FetchPageOptions = {},
-): Promise<Page> {
-  return fetchOk(url, {
-    ...init,
-    headers: { ...BROWSER_HEADERS, ...init.headers },
-  });
-}
-
-/**
- * Fetch a page as curl, replacing the browser headers entirely. Used to slip
- * past Anubis, which only challenges browser-like User-Agents.
- */
-export function fetchPageAsCurl(
-  url: string,
-  init: FetchPageOptions = {},
-): Promise<Page> {
-  return fetchOk(url, { ...init, headers: CURL_HEADERS });
+  return response.text();
 }

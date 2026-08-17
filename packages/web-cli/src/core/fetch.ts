@@ -1,33 +1,8 @@
 import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
-import { fetchPage, fetchPageAsCurl } from "./http.ts";
+import { fetchHtml, fetchHtmlAsCurl } from "./http.ts";
 import { rewriteUrl } from "./rewrite.ts";
-
-// A missing content type is treated as HTML, matching how browsers sniff pages.
-function isHtml(contentType: string): boolean {
-  return (
-    contentType === "" ||
-    contentType.startsWith("text/html") ||
-    contentType.startsWith("application/xhtml+xml")
-  );
-}
-
-// Detect binary content by inspecting the bytes rather than enumerating MIME
-// types per language: a NUL byte never occurs in text, and a high density of
-// U+FFFD replacement chars means the bytes weren't valid UTF-8 text.
-function looksBinary(text: string): boolean {
-  if (text.includes("\u0000")) {
-    return true;
-  }
-  let replacements = 0;
-  for (const char of text) {
-    if (char === "\uFFFD") {
-      replacements++;
-    }
-  }
-  return replacements > text.length * 0.1;
-}
 
 const SE_QUESTION = /^\/questions\/\d+(\/|$)/;
 const GITHUB_ISSUE = /^\/[^/]+\/[^/]+\/issues\/\d+/;
@@ -83,47 +58,31 @@ export interface FetchAsMarkdownOptions {
   signal?: AbortSignal;
 }
 
-/**
- * Fetch a URL and return its content as Markdown. Textual non-HTML content is
- * returned verbatim; binary content throws.
- */
+/** Fetch a URL and return its content as Markdown. */
 export async function fetchAsMarkdown(
   target: string,
   { raw = false, signal }: FetchAsMarkdownOptions = {},
 ): Promise<string> {
   const url = rewriteUrl(target);
-  const page = await fetchPage(url, { signal });
-
-  // Non-HTML: return textual content (Markdown, source, JSON, ...) verbatim,
-  // and reject binary content, which has no useful text representation.
-  if (!isHtml(page.contentType)) {
-    if (looksBinary(page.body)) {
-      throw new Error(
-        `Cannot fetch ${url}: content is binary (${page.contentType})`,
-      );
-    }
-    return page.body;
-  }
-
-  let { url: finalUrl, body: html } = page;
+  let html = await fetchHtml(url, { signal });
   let { document } = parseHTML(html);
 
   // Anubis only challenges browser-like clients; refetch as curl to slip past.
   if (isAnubisChallenge(document)) {
-    ({ url: finalUrl, body: html } = await fetchPageAsCurl(url, { signal }));
+    html = await fetchHtmlAsCurl(url, { signal });
     ({ document } = parseHTML(html));
   }
 
-  if (raw || defuddleManglesUrl(new URL(finalUrl))) {
+  if (raw || defuddleManglesUrl(new URL(url))) {
     return fullPageMarkdown(html);
   }
 
   // useAsync: false stops site-specific extractors from fetching third-party
-  // sources themselves (e.g. old.reddit.com), which would bypass our headers
-  // and mostly get blocked.
+  // sources themselves (e.g. old.reddit.com), which would bypass the browser and
+  // mostly get blocked.
   let extracted: Awaited<ReturnType<typeof Defuddle>>;
   try {
-    extracted = await Defuddle(document, finalUrl, {
+    extracted = await Defuddle(document, url, {
       markdown: true,
       includeReplies: true,
       useAsync: false,

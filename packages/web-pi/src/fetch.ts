@@ -34,7 +34,7 @@ interface FetchDetails {
 export const webFetchTool = defineTool<typeof Params, FetchDetails>({
   name: "web_fetch",
   label: "Web Fetch",
-  description: `Fetch a URL and return its main content as Markdown. Textual non-HTML content is returned verbatim; binary content is rejected. Output is truncated to ${DEFAULT_MAX_LINES} lines or ${formatSize(DEFAULT_MAX_BYTES)}.`,
+  description: `Fetch a URL in a headless browser and return its main content as Markdown, so client-side rendered pages work too. Output is truncated to ${DEFAULT_MAX_LINES} lines or ${formatSize(DEFAULT_MAX_BYTES)}.`,
   promptSnippet: "Fetch a URL and read its content as Markdown",
   promptGuidelines: [
     "Use web_fetch instead of curl to read a web page, because it returns readable Markdown instead of raw HTML.",

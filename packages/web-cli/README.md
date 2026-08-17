@@ -17,6 +17,10 @@ web search <query>   # search the web for a query
 web fetch <url>      # fetch a URL and print its main content as Markdown
 ```
 
+`fetch` loads pages through [Kitesurf](https://kitesurf.cloudflare.app), a
+headless browser on Cloudflare Workers, so client-side rendered pages work — the
+fetched URL is sent to that service.
+
 `search` and `fetch` honor the `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` environment variables.
 
 Run `web --help` or `web <command> --help` for details.

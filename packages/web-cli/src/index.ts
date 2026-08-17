@@ -1,10 +1,9 @@
 export { type FetchAsMarkdownOptions, fetchAsMarkdown } from "./core/fetch.ts";
 export {
-  type FetchPageOptions,
-  fetchPage,
-  fetchPageAsCurl,
+  type FetchHtmlOptions,
+  fetchHtml,
+  fetchHtmlAsCurl,
   httpFetch,
-  type Page,
 } from "./core/http.ts";
 export { rewriteUrl } from "./core/rewrite.ts";
 export {
