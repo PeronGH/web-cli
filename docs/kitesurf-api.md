@@ -22,7 +22,9 @@ schema is Cloudflare's
 | `wss://…/devtools/browser` | CDP browser target |
 | `wss://…/devtools/page/kitesurf` | CDP page target, accepts `?initialUrl=` |
 
-Only `https:` URLs are accepted. `/json/version` reports `Kitesurf/0.0.1`, CDP
+`http:` and `https:` both work — the https-only rule is the playground form's
+client-side check. Other schemes give `400 unsupported protocol <scheme>: (only
+http(s) allowed)`. `/json/version` reports `Kitesurf/0.0.1`, CDP
 1.3, V8 12.0, Chrome/145, so any CDP client attaches without a local Chrome:
 
 ```bash
@@ -65,9 +67,10 @@ page, a DNS failure as Cloudflare's `error code: 1016` page. Non-HTML targets
 arrive through the browser's plaintext viewer, wrapped in `<pre>`.
 
 Kitesurf's own failures are `400 text/plain` for a malformed or missing `url`,
-`400 application/json` for a body that fails validation, and a plaintext
-`Whoa, you're overpowered! 🪁 …` when requests come too fast. The playground
-allows 20s CPU and 60s wall-clock per navigation.
+`400 application/json` for a body that fails validation, and `429 text/plain`
+(`Whoa, you're overpowered! 🪁 …`) with `Retry-After: 10` when renders come too
+fast — 30 concurrent renders trip it, 14 concurrent validation failures do not.
+The playground allows 20s CPU and 60s wall-clock per navigation.
 
 ## Headers seen by the origin
 
@@ -83,3 +86,7 @@ headers pass, and adding that one header to the same request gets challenged.
 `Signature-Agent`, `Cdn-Loop`, `Cf-Ew-Via` and `Cf-Visitor` each pass. No
 combination of API fields avoids it, which is why the Anubis retry in
 `fetchHtmlAsCurl()` bypasses Kitesurf entirely.
+
+Waiting it out does not work either: Kitesurf is stateless, so Anubis renders
+`Missing feature Cookies` and never runs the proof-of-work. `cookies` supplies
+cookies to send, not storage to write, and does not change that verdict.
