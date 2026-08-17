@@ -25,5 +25,5 @@ Try the pi tools from the checkout (requires `bun run build` first, because pi
 resolves the library through its Node entry):
 
 ```bash
-pi -e packages/web-pi/src/extension.ts
+pi -e packages/web-pi/extensions/index.ts
 ```
