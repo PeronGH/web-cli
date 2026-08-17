@@ -121,11 +121,19 @@ export async function fetchAsMarkdown(
   // useAsync: false stops site-specific extractors from fetching third-party
   // sources themselves (e.g. old.reddit.com), which would bypass our headers
   // and mostly get blocked.
-  const { title, content, wordCount } = await Defuddle(document, finalUrl, {
-    markdown: true,
-    includeReplies: true,
-    useAsync: false,
-  });
+  let extracted: Awaited<ReturnType<typeof Defuddle>>;
+  try {
+    extracted = await Defuddle(document, finalUrl, {
+      markdown: true,
+      includeReplies: true,
+      useAsync: false,
+    });
+  } catch {
+    // Extractors throw on markup they don't expect; the whole page still works.
+    return fullPageMarkdown(html);
+  }
+
+  const { title, content, wordCount } = extracted;
 
   // Defuddle found no main content (e.g. an app shell); fall back to the page.
   if (wordCount === 0) {
