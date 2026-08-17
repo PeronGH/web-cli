@@ -35,7 +35,7 @@ export async function prepareFetchOutput(
   const fullOutputPath = tempFilePath();
   await writeFile(fullOutputPath, markdown, "utf8");
 
-  const notice = `[Output truncated: ${truncation.outputLines} of ${truncation.totalLines} lines (${formatSize(truncation.outputBytes)} of ${formatSize(truncation.totalBytes)}). Full output: ${fullOutputPath}]`;
+  const notice = `[Output truncated: ${truncation.outputLines} of ${truncation.totalLines} lines (${formatSize(truncation.outputBytes)} of ${formatSize(truncation.totalBytes)}). Full output: ${fullOutputPath}. Continue reading from line ${truncation.outputLines + 1}.]`;
   return {
     text: truncation.content ? `${truncation.content}\n\n${notice}` : notice,
     truncation,

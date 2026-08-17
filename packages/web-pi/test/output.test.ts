@@ -30,6 +30,9 @@ describe("prepareFetchOutput", () => {
       );
       expect(await Bun.file(fullOutputPath).text()).toBe(markdown);
       expect(result.text).toContain(`Full output: ${fullOutputPath}`);
+      expect(result.text).toContain(
+        `Continue reading from line ${DEFAULT_MAX_LINES + 1}.`,
+      );
     } finally {
       await Bun.file(fullOutputPath).delete();
     }
