@@ -3,15 +3,15 @@ import {
   DEFAULT_MAX_LINES,
   defineTool,
   formatSize,
-  truncateHead,
 } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { fetchAsMarkdown } from "@peron_js/web-cli";
 import { Type } from "typebox";
+import { prepareFetchOutput } from "./output.ts";
 import { expandHint, resultText } from "./render.ts";
 
-// Lines of Markdown shown when the user expands the result. The full document
-// went to the model; the preview only has to make it recognizable.
+// This only limits the expanded TUI preview; it does not further truncate the
+// model-visible tool output.
 const PREVIEW_LINES = 40;
 
 const Params = Type.Object({
@@ -29,12 +29,13 @@ interface FetchDetails {
   lines: number;
   bytes: number;
   truncated: boolean;
+  fullOutputPath?: string;
 }
 
 export const webFetchTool = defineTool<typeof Params, FetchDetails>({
   name: "web_fetch",
   label: "Web Fetch",
-  description: `Fetch a URL and return its content as Markdown, truncated to ${DEFAULT_MAX_LINES} lines or ${formatSize(DEFAULT_MAX_BYTES)}.`,
+  description: `Fetch a URL and return its content as Markdown, truncated to ${DEFAULT_MAX_LINES} lines or ${formatSize(DEFAULT_MAX_BYTES)}. If truncated, full output is saved to a temporary file.`,
   promptSnippet: "Fetch a URL and read its content as Markdown",
   promptGuidelines: [
     "Use web_fetch instead of curl to read a web page, because it returns readable Markdown instead of raw HTML.",
@@ -46,13 +47,8 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
       raw: params.raw,
       signal,
     });
-    const truncation = truncateHead(markdown, {
-      maxLines: DEFAULT_MAX_LINES,
-      maxBytes: DEFAULT_MAX_BYTES,
-    });
-    const text = truncation.truncated
-      ? `${truncation.content}\n\n[Output truncated: ${truncation.outputLines} of ${truncation.totalLines} lines (${formatSize(truncation.outputBytes)} of ${formatSize(truncation.totalBytes)}).]`
-      : truncation.content;
+    const { text, truncation, fullOutputPath } =
+      await prepareFetchOutput(markdown);
     return {
       content: [{ type: "text", text }],
       details: {
@@ -60,6 +56,7 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
         lines: truncation.outputLines,
         bytes: truncation.outputBytes,
         truncated: truncation.truncated,
+        fullOutputPath,
       },
     };
   },
@@ -77,7 +74,7 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
       return new Text(theme.fg("error", resultText(result)), 0, 0);
     }
 
-    const { lines, bytes, truncated } = result.details;
+    const { lines, bytes, truncated, fullOutputPath } = result.details;
     let text = theme.fg(
       "success",
       `${lines} line${lines === 1 ? "" : "s"} · ${formatSize(bytes)}`,
@@ -92,6 +89,9 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
     const hidden = markdown.length - PREVIEW_LINES;
     if (hidden > 0) {
       text += `\n${theme.fg("dim", `… ${hidden} more lines`)}`;
+    }
+    if (fullOutputPath) {
+      text += `\n${theme.fg("dim", `Full output: ${fullOutputPath}`)}`;
     }
     return new Text(text, 0, 0);
   },

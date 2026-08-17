@@ -15,7 +15,8 @@ pi install npm:@peron_js/web-pi
 
 - `web_search` — search the web, returning a numbered Markdown list of results
 - `web_fetch` — fetch a URL in a headless browser and return its main content as
-  Markdown, truncated to 2000 lines or 50KB
+  Markdown, truncated to 2000 lines or 50KB. When truncated, the full Markdown
+  is saved to a temporary file and its path is returned
 
 Both honor the `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` environment variables
 and support cancellation. In the TUI each result collapses to a one-line summary;

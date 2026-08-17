@@ -9,6 +9,7 @@
     "build": "bun run --filter '*' build",
     "format": "biome format --write .",
     "lint": "biome check .",
+    "test": "bun test",
     "typecheck": "bun run --filter '*' typecheck"
   },
   "devDependencies": {
