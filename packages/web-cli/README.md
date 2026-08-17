@@ -19,7 +19,8 @@ web fetch <url>      # fetch a URL and print its main content as Markdown
 
 `fetch` loads pages through [Kitesurf](https://kitesurf.cloudflare.app), a
 headless browser on Cloudflare Workers, so client-side rendered pages work — the
-fetched URL is sent to that service.
+fetched URL is sent to that service. See [docs/kitesurf-api.md](../../docs/kitesurf-api.md)
+for its API.
 
 `search` and `fetch` honor the `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` environment variables.
 
