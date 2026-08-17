@@ -73,6 +73,13 @@ export async function fetchAsMarkdown(
     ({ document } = parseHTML(html));
   }
 
+  // Non-HTML targets come back through the browser's plaintext viewer. Return the
+  // text itself: converting it would escape every backtick in the source.
+  const plaintext = document.querySelector("body > pre:only-child");
+  if (plaintext) {
+    return plaintext.textContent ?? "";
+  }
+
   if (raw || defuddleManglesUrl(new URL(url))) {
     return fullPageMarkdown(html);
   }
