@@ -1,6 +1,6 @@
 {
   "name": "@peron_js/web-pi",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Web search and fetch tools for the pi coding agent",
   "type": "module",
   "keywords": [
