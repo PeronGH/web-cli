@@ -19,5 +19,6 @@ pi install npm:@peron_js/web-pi
   is saved to a temporary file and its path is returned
 
 Both honor the `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` environment variables
-and support cancellation. In the TUI each result collapses to a one-line summary;
-expand it to preview the titles or the fetched Markdown.
+and support cancellation. In the TUI each result collapses to a summary line,
+plus the saved file path when a fetch was truncated; expand it to preview the
+titles or the fetched Markdown.

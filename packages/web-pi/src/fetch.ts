@@ -80,7 +80,11 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
       `${lines} line${lines === 1 ? "" : "s"} · ${formatSize(bytes)}`,
     );
     if (truncated) text += theme.fg("warning", " (truncated)");
-    if (!expanded) return new Text(text + expandHint(theme), 0, 0);
+    if (!expanded) text += expandHint(theme);
+    if (fullOutputPath) {
+      text += `\n${theme.fg("dim", `Full output: ${fullOutputPath}`)}`;
+    }
+    if (!expanded) return new Text(text, 0, 0);
 
     const markdown = resultText(result).split("\n");
     for (const line of markdown.slice(0, PREVIEW_LINES)) {
@@ -89,9 +93,6 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
     const hidden = markdown.length - PREVIEW_LINES;
     if (hidden > 0) {
       text += `\n${theme.fg("dim", `… ${hidden} more lines`)}`;
-    }
-    if (fullOutputPath) {
-      text += `\n${theme.fg("dim", `Full output: ${fullOutputPath}`)}`;
     }
     return new Text(text, 0, 0);
   },
