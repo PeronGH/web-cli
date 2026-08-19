@@ -20,7 +20,5 @@ pi install npm:@peron_js/web-pi
 
 Both honor the `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` environment variables
 and support cancellation. In the TUI each result collapses to a summary line,
-followed by a `[Full output: … . Truncated: …]` status line when a fetch was
-truncated; expand it to see the result titles or the fetched Markdown.
-Truncation notices and status lines follow the same format as pi's built-in
-`read` and `bash` tools.
+plus the saved file path when a fetch was truncated; expand it to see the
+titles or the fetched Markdown.
