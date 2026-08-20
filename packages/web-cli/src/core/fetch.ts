@@ -4,6 +4,10 @@ import TurndownService from "turndown";
 import { fetchHtml, fetchHtmlAsCurl } from "./http.ts";
 import { rewriteUrl } from "./rewrite.ts";
 
+// Outer bound on the network work, above Kitesurf's own render cap so a render
+// that lands just under it still gets through.
+const FETCH_TIMEOUT_MS = 20_000;
+
 const SE_QUESTION = /^\/questions\/\d+(\/|$)/;
 const GITHUB_ISSUE = /^\/[^/]+\/[^/]+\/issues\/\d+/;
 
@@ -64,12 +68,18 @@ export async function fetchAsMarkdown(
   { raw = false, signal }: FetchAsMarkdownOptions = {},
 ): Promise<string> {
   const url = rewriteUrl(target);
-  let html = await fetchHtml(url, { signal });
+  // One deadline for the whole fetch: the Anubis retry is a second round trip
+  // and must not get a fresh budget.
+  const deadline = AbortSignal.any([
+    AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    ...(signal ? [signal] : []),
+  ]);
+  let html = await fetchHtml(url, { signal: deadline });
   let { document } = parseHTML(html);
 
   // Anubis only challenges browser-like clients; refetch as curl to slip past.
   if (isAnubisChallenge(document)) {
-    html = await fetchHtmlAsCurl(url, { signal });
+    html = await fetchHtmlAsCurl(url, { signal: deadline });
     ({ document } = parseHTML(html));
   }
 

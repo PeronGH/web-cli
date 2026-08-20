@@ -7,6 +7,12 @@ import { EnvHttpProxyAgent } from "undici";
 // is always HTML no matter what the target served.
 const KITESURF_HTML = "https://kitesurf.cloudflare.app/html";
 
+// A slow origin otherwise burns Kitesurf's whole 60s wall-clock budget. Capping
+// the navigation needs `gotoOptions`, which is POST-only — GET reads just `url`.
+// `bestAttempt` then serializes whatever the page had at the cap instead of
+// failing the render outright.
+const RENDER_TIMEOUT_MS = 10_000;
+
 // Anubis (https://github.com/TecharoHQ/anubis) gates browser-like clients behind
 // a JavaScript proof-of-work, but scores any non-"Mozilla" User-Agent as benign
 // and lets it straight through. Retrying as curl is cheaper than solving it.
@@ -38,8 +44,16 @@ export async function fetchHtml(
   url: string,
   init: FetchHtmlOptions = {},
 ): Promise<string> {
-  const endpoint = `${KITESURF_HTML}?url=${encodeURIComponent(url)}`;
-  const response = await httpFetch(endpoint, init);
+  const response = await httpFetch(KITESURF_HTML, {
+    ...init,
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      url,
+      gotoOptions: { timeout: RENDER_TIMEOUT_MS },
+      bestAttempt: true,
+    }),
+  });
   if (!response.ok) {
     const detail = (await response.text()).trim();
     throw new Error(`Failed to fetch ${url}: ${response.status} ${detail}`);
