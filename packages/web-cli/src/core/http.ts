@@ -11,7 +11,7 @@ const KITESURF_HTML = "https://kitesurf.cloudflare.app/html";
 // the navigation needs `gotoOptions`, which is POST-only — GET reads just `url`.
 // `bestAttempt` then serializes whatever the page had at the cap instead of
 // failing the render outright.
-const RENDER_TIMEOUT_MS = 10_000;
+const RENDER_TIMEOUT_MS = 15_000;
 
 // Anubis (https://github.com/TecharoHQ/anubis) gates browser-like clients behind
 // a JavaScript proof-of-work, but scores any non-"Mozilla" User-Agent as benign
