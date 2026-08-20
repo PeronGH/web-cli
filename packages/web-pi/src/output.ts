@@ -41,7 +41,8 @@ function truncationNotice(
   }
   const byteLimit =
     truncation.truncatedBy === "bytes" ? ` (${limit} limit)` : "";
-  return `[Showing lines 1-${truncation.outputLines} of ${truncation.totalLines}${byteLimit}. Full output: ${fullOutputPath}]`;
+  const nextOffset = truncation.outputLines + 1;
+  return `[Showing lines 1-${truncation.outputLines} of ${truncation.totalLines}${byteLimit}. Full output: ${fullOutputPath}. Continue with read(offset=${nextOffset})]`;
 }
 
 /** Remove the trailing notice from model-visible text, for display in the TUI. */

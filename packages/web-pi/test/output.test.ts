@@ -45,7 +45,7 @@ describe("prepareFetchOutput", () => {
 
     await withFullOutput(markdown, (result, fullOutputPath) => {
       expect(result.notice).toBe(
-        `[Showing lines 1-${DEFAULT_MAX_LINES} of ${DEFAULT_MAX_LINES + 1}. Full output: ${fullOutputPath}]`,
+        `[Showing lines 1-${DEFAULT_MAX_LINES} of ${DEFAULT_MAX_LINES + 1}. Full output: ${fullOutputPath}. Continue with read(offset=${DEFAULT_MAX_LINES + 1})]`,
       );
       expect(result.text.endsWith(`\n\n${result.notice}`)).toBe(true);
     });
@@ -59,7 +59,7 @@ describe("prepareFetchOutput", () => {
     await withFullOutput(markdown, (result, fullOutputPath) => {
       expect(result.truncation.truncatedBy).toBe("bytes");
       expect(result.notice).toBe(
-        `[Showing lines 1-${result.truncation.outputLines} of 100 (50.0KB limit). Full output: ${fullOutputPath}]`,
+        `[Showing lines 1-${result.truncation.outputLines} of 100 (50.0KB limit). Full output: ${fullOutputPath}. Continue with read(offset=${result.truncation.outputLines + 1})]`,
       );
     });
   });
