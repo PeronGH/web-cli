@@ -38,11 +38,11 @@
   },
   "dependencies": {
     "citty": "^0.2.2",
-    "defuddle": "^0.18.1",
-    "linkedom": "^0.18.12",
+    "defuddle": "^0.19.2",
+    "linkedom": "^0.18.13",
     "mathml-to-latex": "^1.8.0",
     "turndown": "^7.2.4",
-    "undici": "^8.4.1"
+    "undici": "^8.10.0"
   },
   "devDependencies": {
     "@types/turndown": "^5.0.6"
