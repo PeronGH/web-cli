@@ -12,6 +12,11 @@ export const fetchCommand = defineCommand({
       description: "The URL to fetch",
       required: true,
     },
+    direct: {
+      type: "boolean",
+      description: "Fetch directly without the headless browser",
+      default: false,
+    },
     raw: {
       type: "boolean",
       description:
@@ -20,6 +25,11 @@ export const fetchCommand = defineCommand({
     },
   },
   async run({ args }) {
-    console.log(await fetchAsMarkdown(args.url, { raw: args.raw }));
+    console.log(
+      await fetchAsMarkdown(args.url, {
+        direct: args.direct,
+        raw: args.raw,
+      }),
+    );
   },
 });

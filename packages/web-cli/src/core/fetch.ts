@@ -1,8 +1,30 @@
 import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
-import { fetchHtml, fetchHtmlAsCurl } from "./http.ts";
+import { fetchHtml, fetchPageAsCurl, fetchPageDirect } from "./http.ts";
 import { rewriteUrl } from "./rewrite.ts";
+
+// A missing content type is treated as HTML, matching how browsers sniff pages.
+function isHtml(contentType: string): boolean {
+  return (
+    contentType === "" ||
+    contentType.startsWith("text/html") ||
+    contentType.startsWith("application/xhtml+xml")
+  );
+}
+
+// Detect binary content by inspecting the decoded bytes rather than maintaining
+// a list of MIME types: NUL never occurs in text, and many replacement chars
+// indicate that the response wasn't valid UTF-8.
+function looksBinary(text: string): boolean {
+  if (text.includes("\u0000")) return true;
+
+  let replacements = 0;
+  for (const char of text) {
+    if (char === "\uFFFD") replacements++;
+  }
+  return replacements > text.length * 0.1;
+}
 
 // Outer bound on the network work, above Kitesurf's own render cap so a render
 // that lands just under it still gets through.
@@ -57,6 +79,8 @@ function isAnubisChallenge(document: {
 }
 
 export interface FetchAsMarkdownOptions {
+  /** Fetch the response directly instead of rendering it in a headless browser. */
+  direct?: boolean;
   /** Convert the whole page instead of extracting the main content. */
   raw?: boolean;
   signal?: AbortSignal;
@@ -65,7 +89,7 @@ export interface FetchAsMarkdownOptions {
 /** Fetch a URL and return its content as Markdown. */
 export async function fetchAsMarkdown(
   target: string,
-  { raw = false, signal }: FetchAsMarkdownOptions = {},
+  { direct = false, raw = false, signal }: FetchAsMarkdownOptions = {},
 ): Promise<string> {
   const url = rewriteUrl(target);
   // One deadline for the whole fetch: the Anubis retry is a second round trip
@@ -74,32 +98,54 @@ export async function fetchAsMarkdown(
     AbortSignal.timeout(FETCH_TIMEOUT_MS),
     ...(signal ? [signal] : []),
   ]);
-  let html = await fetchHtml(url, { signal: deadline });
+
+  let finalUrl = url;
+  let html: string;
+  if (direct) {
+    const page = await fetchPageDirect(url, { signal: deadline });
+    if (!isHtml(page.contentType)) {
+      if (looksBinary(page.body)) {
+        throw new Error(
+          `Cannot fetch ${url}: content is binary (${page.contentType})`,
+        );
+      }
+      return page.body;
+    }
+    finalUrl = page.url;
+    html = page.body;
+  } else {
+    html = await fetchHtml(url, { signal: deadline });
+  }
+
   let { document } = parseHTML(html);
 
   // Anubis only challenges browser-like clients; refetch as curl to slip past.
   if (isAnubisChallenge(document)) {
-    html = await fetchHtmlAsCurl(url, { signal: deadline });
+    const page = await fetchPageAsCurl(url, { signal: deadline });
+    finalUrl = page.url;
+    html = page.body;
     ({ document } = parseHTML(html));
   }
 
   // Non-HTML targets come back through the browser's plaintext viewer. Return the
   // text itself: converting it would escape every backtick in the source.
-  const plaintext = document.querySelector("body > pre:only-child");
+  const plaintext = direct
+    ? null
+    : document.querySelector("body > pre:only-child");
   if (plaintext) {
     return plaintext.textContent ?? "";
   }
 
-  if (raw || defuddleManglesUrl(new URL(url))) {
+  if (raw || defuddleManglesUrl(new URL(finalUrl))) {
     return fullPageMarkdown(html);
   }
 
   // useAsync: false stops site-specific extractors from fetching third-party
-  // sources themselves (e.g. old.reddit.com), which would bypass the browser and
-  // mostly get blocked.
+  // sources themselves (e.g. old.reddit.com), which would otherwise make a
+  // separate unconfigured request.
   let extracted: Awaited<ReturnType<typeof Defuddle>>;
   try {
-    extracted = await Defuddle(document, url, {
+    extracted = await Defuddle(document, finalUrl, {
       markdown: true,
       includeReplies: true,
       useAsync: false,
