@@ -12,7 +12,7 @@
     },
     "packages/web-cli": {
       "name": "@peron_js/web-cli",
-      "version": "0.9.3",
+      "version": "0.9.4",
       "bin": {
         "web": "./dist/index.js",
       },
@@ -30,9 +30,9 @@
     },
     "packages/web-pi": {
       "name": "@peron_js/web-pi",
-      "version": "0.2.7",
+      "version": "0.2.8",
       "dependencies": {
-        "@peron_js/web-cli": "0.9.3",
+        "@peron_js/web-cli": "0.9.4",
       },
       "peerDependencies": {
         "@earendil-works/pi-coding-agent": "*",
