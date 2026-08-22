@@ -14,6 +14,11 @@ import { expandHint, resultText } from "./render.ts";
 
 const Params = Type.Object({
   url: Type.String({ description: "The URL to fetch" }),
+  direct: Type.Optional(
+    Type.Boolean({
+      description: "Fetch directly without the headless browser",
+    }),
+  ),
   raw: Type.Optional(
     Type.Boolean({
       description:
@@ -68,6 +73,7 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
 
   async execute(_toolCallId, params, signal) {
     const markdown = await fetchAsMarkdown(params.url, {
+      direct: params.direct,
       raw: params.raw,
       signal,
     });
@@ -89,6 +95,7 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
   renderCall(args, theme) {
     let text = theme.fg("toolTitle", theme.bold("web_fetch "));
     text += theme.fg("mdLinkUrl", args.url);
+    if (args.direct) text += theme.fg("dim", " --direct");
     if (args.raw) text += theme.fg("dim", " --raw");
     return new Text(text, 0, 0);
   },
