@@ -61,7 +61,7 @@ schema below, validated strictly — an unknown key fails the request:
 
 ## Responses
 
-`/html` answers `200 text/html` whenever a page loaded, whatever the origin
+`/html` answers `200 text/plain` whenever a page loaded, whatever the origin
 returned, so **upstream status codes are invisible**: a 404 arrives as the 404
 page, a DNS failure as Cloudflare's `error code: 1016` page. Non-HTML targets
 arrive through the browser's plaintext viewer, wrapped in `<pre>`.
