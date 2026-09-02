@@ -2,12 +2,12 @@
 
 [Kitesurf](https://kitesurf.cloudflare.app) is Cloudflare's headless browser
 running on Workers. `fetchHtml()` in
-[`core/http.ts`](../packages/web-cli/src/core/http.ts) sends every page fetch
+[`core/http.ts`](../packages/web-cli/src/core/http.ts) sends `render` fetches
 through its `/html` endpoint, which returns the serialized post-JavaScript DOM.
 
 Undocumented beyond [the announcement](https://blog.cloudflare.com/kitesurf);
-everything below was verified against the live service on 2026-08-17. The request
-schema is Cloudflare's
+everything below was verified against the live service on 2026-08-17 and
+2026-09-02. The request schema is Cloudflare's
 [Browser Rendering `/content`](https://developers.cloudflare.com/browser-rendering/rest-api/content-endpoint/).
 
 ## Endpoints
@@ -45,7 +45,7 @@ schema below, validated strictly — an unknown key fails the request:
 | Field | Type | Notes |
 | --- | --- | --- |
 | `url` | string | One of `url` or `html` is required |
-| `html` | string | Markup to render instead of navigating; `POST` only |
+| `html` | string | Markup to render instead of navigating; `POST` only. Loads against a synthetic `https://kitesurf.local/` origin, so relative subresources fail; conflicts with `url` |
 | `userAgent` | string | Replaces the User-Agent seen by the origin |
 | `setExtraHTTPHeaders` | record | Added to the origin request |
 | `authenticate` | object | |
@@ -53,7 +53,7 @@ schema below, validated strictly — an unknown key fails the request:
 | `viewport` | object | |
 | `gotoOptions` | object | Holds `waitUntil` and `timeout` |
 | `waitForSelector` | object | |
-| `addScriptTag`, `addStyleTag` | array | |
+| `addScriptTag`, `addStyleTag` | array | Appended as DOM elements after navigation; script content runs in the main world but is subject to the origin's CSP |
 | `emulateMediaType` | string | |
 | `rejectResourceTypes`, `allowResourceTypes` | array | |
 | `rejectRequestPattern`, `allowRequestPattern` | array | |
@@ -85,8 +85,15 @@ signature naming `cloudflare-browser-rendering-085.workers.dev`.
 headers pass, and adding that one header to the same request gets challenged.
 `Signature-Agent`, `Cdn-Loop`, `Cf-Ew-Via` and `Cf-Visitor` each pass. No
 combination of API fields avoids it, which is why the Anubis retry in
-`fetchHtmlAsCurl()` bypasses Kitesurf entirely.
+`fetchPageAsCurl()` bypasses Kitesurf entirely.
 
-Waiting it out does not work either: Kitesurf is stateless, so Anubis renders
-`Missing feature Cookies` and never runs the proof-of-work. `cookies` supplies
-cookies to send, not storage to write, and does not change that verdict.
+Solving the challenge is not an option either: the browser reports
+`navigator.cookieEnabled: false`, so Anubis's feature check renders
+`Missing feature Cookies` before any proof-of-work runs — even though the
+cookie jar, `document.cookie`, `localStorage` and WebCrypto all work within a
+render. `addScriptTag` cannot patch the flag: injected scripts are blocked by
+the challenge page's CSP (`default-src 'self'`) and land after navigation
+anyway. `cookies` supplies cookies to send, not storage to write, and does
+not change that verdict. The one escape left untried is the CDP WebSocket
+endpoint, where `Page.addScriptToEvaluateOnNewDocument` would run before
+page scripts.
