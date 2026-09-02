@@ -28,7 +28,7 @@ function looksBinary(text: string): boolean {
 
 // Outer bound on the network work, above Kitesurf's own render cap so a render
 // that lands just under it still gets through.
-const FETCH_TIMEOUT_MS = 30_000;
+const FETCH_TIMEOUT_MS = 60_000;
 
 const SE_QUESTION = /^\/questions\/\d+(\/|$)/;
 const GITHUB_ISSUE = /^\/[^/]+\/[^/]+\/issues\/\d+/;

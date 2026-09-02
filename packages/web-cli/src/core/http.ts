@@ -29,9 +29,11 @@ const BROWSER_HEADERS = {
 
 // A slow origin otherwise burns Kitesurf's whole 60s wall-clock budget. Capping
 // the navigation needs `gotoOptions`, which is POST-only — GET reads just `url`.
-// `bestAttempt` then serializes whatever the page had at the cap instead of
-// failing the render outright.
-const RENDER_TIMEOUT_MS = 15_000;
+// `waitUntil: "networkidle0"` holds the navigation open until network activity
+// has settled, so late-loading content is on the page before serialization, and
+// `bestAttempt` serializes whatever the page had at the cap instead of failing
+// the render outright.
+const RENDER_TIMEOUT_MS = 30_000;
 
 // Anubis (https://github.com/TecharoHQ/anubis) gates browser-like clients behind
 // a JavaScript proof-of-work, but scores any non-"Mozilla" User-Agent as benign
@@ -112,7 +114,7 @@ export async function fetchHtml(
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       url,
-      gotoOptions: { timeout: RENDER_TIMEOUT_MS },
+      gotoOptions: { waitUntil: "networkidle0", timeout: RENDER_TIMEOUT_MS },
       bestAttempt: true,
     }),
   });
