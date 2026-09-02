@@ -35,6 +35,24 @@ const BROWSER_HEADERS = {
 // the render outright.
 const RENDER_TIMEOUT_MS = 30_000;
 
+// The serialized DOM already carries everything markdown extraction needs —
+// structure, text, href/src/alt — so resource bytes never influence the output.
+// Blocking them lets `networkidle0` settle sooner and eases Kitesurf's CPU and
+// wall-clock budgets. Scripts and the document/data transports that feed them
+// (`xhr`, `fetch`) must stay: client-side rendering is the point of rendering,
+// and blocking `preflight` would break cross-origin content fetches.
+const REJECT_RESOURCE_TYPES = [
+  "stylesheet",
+  "image",
+  "font",
+  "media",
+  "manifest",
+  "texttrack",
+  "prefetch",
+  "ping",
+  "cspviolationreport",
+];
+
 // Anubis (https://github.com/TecharoHQ/anubis) gates browser-like clients behind
 // a JavaScript proof-of-work, but scores any non-"Mozilla" User-Agent as benign
 // and lets it straight through. Retrying as curl is cheaper than solving it.
@@ -115,6 +133,7 @@ export async function fetchHtml(
     body: JSON.stringify({
       url,
       gotoOptions: { waitUntil: "networkidle0", timeout: RENDER_TIMEOUT_MS },
+      rejectResourceTypes: REJECT_RESOURCE_TYPES,
       bestAttempt: true,
     }),
   });

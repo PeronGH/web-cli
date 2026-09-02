@@ -55,7 +55,7 @@ schema below, validated strictly — an unknown key fails the request:
 | `waitForSelector` | object | |
 | `addScriptTag`, `addStyleTag` | array | Appended as DOM elements after navigation; script content runs in the main world but is subject to the origin's CSP |
 | `emulateMediaType` | string | |
-| `rejectResourceTypes`, `allowResourceTypes` | array | |
+| `rejectResourceTypes`, `allowResourceTypes` | array | Puppeteer request resource types, e.g. `image`, `script` |
 | `rejectRequestPattern`, `allowRequestPattern` | array | |
 | `bestAttempt` | boolean | |
 
