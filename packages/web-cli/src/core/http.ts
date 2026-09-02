@@ -1,10 +1,10 @@
 import { EnvHttpProxyAgent } from "undici";
 
 // Kitesurf is a stateless headless browser running on Cloudflare Workers: it
-// loads the target URL, runs its JavaScript and returns the serialized DOM. Every
-// page goes through it, so we get browser-rendered HTML — client-side rendered
-// pages included — without spoofing browser headers ourselves, and the response
-// is always HTML no matter what the target served.
+// loads the target URL, runs its JavaScript and returns the serialized DOM.
+// Rendering through it is opt-in, for pages whose content only exists after
+// JavaScript runs; the response is always HTML no matter what the target
+// served.
 const KITESURF_HTML = "https://kitesurf.cloudflare.app/html";
 
 // Browser-like request headers so sites serve their standard server-rendered

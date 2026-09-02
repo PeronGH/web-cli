@@ -79,8 +79,8 @@ function isAnubisChallenge(document: {
 }
 
 export interface FetchAsMarkdownOptions {
-  /** Fetch the response directly instead of rendering it in a headless browser. */
-  direct?: boolean;
+  /** Render the page in a headless browser instead of fetching it directly. */
+  render?: boolean;
   /** Convert the whole page instead of extracting the main content. */
   raw?: boolean;
   signal?: AbortSignal;
@@ -89,7 +89,7 @@ export interface FetchAsMarkdownOptions {
 /** Fetch a URL and return its content as Markdown. */
 export async function fetchAsMarkdown(
   target: string,
-  { direct = false, raw = false, signal }: FetchAsMarkdownOptions = {},
+  { render = false, raw = false, signal }: FetchAsMarkdownOptions = {},
 ): Promise<string> {
   const url = rewriteUrl(target);
   // One deadline for the whole fetch: the Anubis retry is a second round trip
@@ -101,7 +101,9 @@ export async function fetchAsMarkdown(
 
   let finalUrl = url;
   let html: string;
-  if (direct) {
+  if (render) {
+    html = await fetchHtml(url, { signal: deadline });
+  } else {
     const page = await fetchPageDirect(url, { signal: deadline });
     if (!isHtml(page.contentType)) {
       if (looksBinary(page.body)) {
@@ -113,8 +115,6 @@ export async function fetchAsMarkdown(
     }
     finalUrl = page.url;
     html = page.body;
-  } else {
-    html = await fetchHtml(url, { signal: deadline });
   }
 
   let { document } = parseHTML(html);
@@ -129,9 +129,9 @@ export async function fetchAsMarkdown(
 
   // Non-HTML targets come back through the browser's plaintext viewer. Return the
   // text itself: converting it would escape every backtick in the source.
-  const plaintext = direct
-    ? null
-    : document.querySelector("body > pre:only-child");
+  const plaintext = render
+    ? document.querySelector("body > pre:only-child")
+    : null;
   if (plaintext) {
     return plaintext.textContent ?? "";
   }
