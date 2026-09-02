@@ -14,9 +14,9 @@ import { expandHint, resultText } from "./render.ts";
 
 const Params = Type.Object({
   url: Type.String({ description: "The URL to fetch" }),
-  direct: Type.Optional(
+  render: Type.Optional(
     Type.Boolean({
-      description: "Fetch directly without the headless browser",
+      description: "Render the page in a headless browser (slow)",
     }),
   ),
   raw: Type.Optional(
@@ -64,7 +64,7 @@ function statusLine(
 export const webFetchTool = defineTool<typeof Params, FetchDetails>({
   name: "web_fetch",
   label: "Web Fetch",
-  description: `Fetch a URL and return its content as Markdown. Output is truncated to ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a temp file.`,
+  description: `Fetch a URL and return its content as Markdown. Pages that render their content with JavaScript come back empty from a direct fetch; retry those with render: true. Output is truncated to ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a temp file.`,
   promptSnippet: "Fetch a URL and read its content as Markdown",
   promptGuidelines: [
     "Use web_fetch instead of curl to read a web page, because it returns readable Markdown instead of raw HTML.",
@@ -73,7 +73,7 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
 
   async execute(_toolCallId, params, signal) {
     const markdown = await fetchAsMarkdown(params.url, {
-      direct: params.direct,
+      render: params.render,
       raw: params.raw,
       signal,
     });
@@ -95,7 +95,7 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
   renderCall(args, theme) {
     let text = theme.fg("toolTitle", theme.bold("web_fetch "));
     text += theme.fg("mdLinkUrl", args.url);
-    if (args.direct) text += theme.fg("dim", " --direct");
+    if (args.render) text += theme.fg("dim", " --render");
     if (args.raw) text += theme.fg("dim", " --raw");
     return new Text(text, 0, 0);
   },
