@@ -12,16 +12,6 @@ function removeSuffix(value: string, suffix: string): string {
 const URL_REWRITES: readonly (readonly [UrlMatcher, UrlRewrite])[] = [
   [
     (url) =>
-      url.hostname === "developers.cloudflare.com" &&
-      !/\.[a-z]+$/.test(url.pathname),
-    (url) => {
-      url.pathname = url.pathname.endsWith("/")
-        ? `${url.pathname}index.md`
-        : `${url.pathname}/index.md`;
-    },
-  ],
-  [
-    (url) =>
       url.hostname === "developer.apple.com" &&
       url.pathname.startsWith("/documentation/"),
     (url) => {
