@@ -19,6 +19,7 @@ bun install
 bun run build       # bundles the CLI bin and the library entry
 bun run lint
 bun run typecheck
+bun run bump      # bump both packages in lockstep; pass minor/major/<version> to override patch
 ```
 
 Try the pi tools from the checkout (requires `bun run build` first, because pi

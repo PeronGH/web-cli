@@ -10,7 +10,8 @@
     "format": "biome format --write .",
     "lint": "biome check .",
     "test": "bun test",
-    "typecheck": "bun run --filter '*' typecheck"
+    "typecheck": "bun run --filter '*' typecheck",
+    "bump": "bump() { for p in packages/*; do (cd \"$p\" && bun pm version \"${1:-patch}\" --no-git-tag-version); done; }; bump"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.10",
