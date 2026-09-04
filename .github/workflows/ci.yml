@@ -67,7 +67,9 @@ jobs:
         working-directory: ${{ matrix.dir }}
         env:
           PROXY_BASE: ${{ vars.PROXY_BASE }}
-        run: npm publish
+        # bun pm pack resolves workspace:* to the concrete version; npm handles
+        # the OIDC exchange, which bun publish does not support yet.
+        run: npm publish "$(bun pm pack --quiet)"
 
       - name: Tag and release
         if: steps.version.outputs.released == 'false'
