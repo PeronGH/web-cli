@@ -1,6 +1,6 @@
 import { httpFetch } from "./http.ts";
 
-const SEARX_INSTANCE = "https://search.banned.dynv6.net";
+const SEARX_INSTANCE = "https://workers-searxng.banned.workers.dev";
 
 /** A single search result. */
 export interface SearchResult {
