@@ -19,8 +19,10 @@ bun install
 bun run build       # bundles the CLI bin and the library entry
 bun run lint
 bun run typecheck
-bun run bump      # bump both packages in lockstep; pass minor/major/<version> to override patch
+bun run bump        # bump both packages and sync lockfile versions; defaults to patch
 ```
+
+Pass `minor`, `major`, or an explicit version to `bun run bump` to override the patch bump. The script synchronizes lockfile versions so Bun packs `workspace:*` dependencies at the new version.
 
 Try the pi tools from the checkout (requires `bun run build` first, because pi
 resolves the library through its Node entry):
