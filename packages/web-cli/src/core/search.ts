@@ -160,8 +160,8 @@ export async function search(
   { limit, signal }: SearchOptions = {},
 ): Promise<SearchResult[]> {
   // A page holds PAGE_SIZE results, so a larger limit costs one request each.
-  const pages =
-    limit === undefined ? 1 : Math.min(Math.ceil(limit / PAGE_SIZE), MAX_PAGE);
+  const requested = limit === undefined ? 1 : Math.ceil(limit / PAGE_SIZE);
+  const pages = Math.min(Math.max(requested, 0), MAX_PAGE);
 
   // Pages are independent, so they go out together — the token is minted once
   // up front, since a concurrent mint per page would each need its own request.
