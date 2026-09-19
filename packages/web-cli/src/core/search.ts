@@ -10,7 +10,9 @@ const LIBRARY_URL = `https://www.google.com/cse/cse.js?cx=${CX}`;
 const ENDPOINT = "https://cse.google.com/cse/element/v1";
 
 const PAGE_SIZE = 20;
-const MAX_PAGE = 5;
+/** Google stops serving a CSE past six pages, however big the limit. */
+const MAX_RESULTS = 120;
+const MAX_PAGE = MAX_RESULTS / PAGE_SIZE;
 const TOKEN_TTL_MS = 60 * 60 * 1000;
 
 /** Filter results: `off` | `medium` | `high`. */
@@ -24,7 +26,7 @@ export interface SearchResult {
 }
 
 export interface SearchOptions {
-  /** Maximum number of results to return. */
+  /** Maximum number of results to return, capped at `MAX_RESULTS`. */
   limit?: number;
   signal?: AbortSignal;
 }
@@ -161,7 +163,6 @@ export async function search(
   // A page holds PAGE_SIZE results, so a larger limit costs one request each.
   const pages =
     limit === undefined ? 1 : Math.min(Math.ceil(limit / PAGE_SIZE), MAX_PAGE);
-
   const results: SearchResult[] = [];
   for (let page = 0; page < pages; page++) {
     results.push(...(await searchPage(query, page * PAGE_SIZE, signal)));
