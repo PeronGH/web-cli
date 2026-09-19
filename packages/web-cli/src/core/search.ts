@@ -15,9 +15,6 @@ const MAX_RESULTS = 120;
 const MAX_PAGE = MAX_RESULTS / PAGE_SIZE;
 const TOKEN_TTL_MS = 60 * 60 * 1000;
 
-/** Filter results: `off` | `medium` | `high`. */
-const SAFE = "medium";
-
 /** A single search result. */
 export interface SearchResult {
   title: string;
@@ -107,7 +104,9 @@ async function searchPage(
     cselibv: token.version,
     cx: CX,
     q: query,
-    safe: SAFE,
+    // Explicitly unfiltered: omitting `safe` falls back to whatever the CSE's
+    // own control panel is set to, which we neither control nor know.
+    safe: "off",
     cse_tok: token.token,
     callback: "_",
     // Empty, but required: dropping `rurl` altogether gets a 403.
