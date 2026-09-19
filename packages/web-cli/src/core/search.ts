@@ -6,7 +6,7 @@ import { httpFetch } from "./http.ts";
 // https://github.com/searxng/searxng/blob/master/searx/engines/google_cse.py
 
 const CX = "partner-pub-8993703457585266:4862972284"; // blackle.com
-const LIBRARY_URL = `https://www.google.com/cse/cse.js?cx=${CX}`;
+const LIBRARY_URL = `https://cse.google.com/cse/cse.js?cx=${CX}`;
 const ENDPOINT = "https://cse.google.com/cse/element/v1";
 
 const PAGE_SIZE = 20;
