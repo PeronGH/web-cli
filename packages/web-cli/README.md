@@ -24,6 +24,10 @@ a headless browser on Cloudflare Workers, so client-side rendered pages work —
 the fetched URL is sent to that service. See
 [docs/kitesurf-api.md](../../docs/kitesurf-api.md) for the rendering API.
 
+`search` talks to Google's Custom Search Engine endpoint directly, so it needs
+no API key and no third-party search instance in between. Google rate-limits
+that endpoint: a `403` answer means waiting a while before searching again.
+
 `search` and `fetch` honor the `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` environment variables.
 
 Run `web --help` or `web <command> --help` for details.
