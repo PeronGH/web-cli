@@ -78,17 +78,10 @@ async function cseToken(signal?: AbortSignal): Promise<CseToken> {
   return cachedToken;
 }
 
-/**
- * Google labels the interface by language (`hl`) and boosts results by country
- * (`gl`); both follow the host locale, so `de-DE` asks for `hl=de`, `gl=DE`.
- */
+/** Google labels the interface by language (`hl`), which follows the host locale. */
 function localeParams(): Record<string, string> {
-  const [language = "en", ...subtags] = Intl.DateTimeFormat()
-    .resolvedOptions()
-    .locale.split("-");
-  // The region is the other two-letter subtag; script subtags (`Hans`) are four.
-  const region = subtags.find((tag) => /^[A-Za-z]{2}$/.test(tag));
-  return region ? { hl: language, gl: region.toUpperCase() } : { hl: language };
+  const [language = "en"] = Intl.DateTimeFormat().resolvedOptions().locale.split("-");
+  return { hl: language };
 }
 
 async function searchPage(
