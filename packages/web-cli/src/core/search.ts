@@ -97,10 +97,9 @@ function localeParams(): Record<string, string> {
 async function searchPage(
   query: string,
   start: number,
+  token: CseToken,
   signal?: AbortSignal,
 ): Promise<SearchResult[]> {
-  const token = await cseToken(signal);
-
   const params = new URLSearchParams({
     rsz: "filtered_cse",
     num: String(PAGE_SIZE),
@@ -163,10 +162,29 @@ export async function search(
   // A page holds PAGE_SIZE results, so a larger limit costs one request each.
   const pages =
     limit === undefined ? 1 : Math.min(Math.ceil(limit / PAGE_SIZE), MAX_PAGE);
+
+  // Pages are independent, so they go out together — the token is minted once
+  // up front, since a concurrent mint per page would each need its own request.
+  const token = await cseToken(signal);
+  const settled = await Promise.allSettled(
+    Array.from({ length: pages }, (_, page) =>
+      searchPage(query, page * PAGE_SIZE, token, signal),
+    ),
+  );
+
+  // allSettled keeps the pages that answered, in request order so relevance
+  // order survives; only a total wipeout is worth reporting as a failure.
   const results: SearchResult[] = [];
-  for (let page = 0; page < pages; page++) {
-    results.push(...(await searchPage(query, page * PAGE_SIZE, signal)));
+  let failure: PromiseRejectedResult | undefined;
+  for (const outcome of settled) {
+    if (outcome.status === "fulfilled") {
+      results.push(...outcome.value);
+    } else {
+      failure ??= outcome;
+    }
   }
+  if (results.length === 0 && failure) throw failure.reason;
+
   return limit === undefined ? results : results.slice(0, limit);
 }
 
