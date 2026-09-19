@@ -23,7 +23,7 @@ export const searchCommand = defineCommand({
     },
     limit: {
       type: "string",
-      description: "Maximum number of results to print",
+      description: "Maximum number of results to print (default 20)",
     },
   },
   async run({ args }) {

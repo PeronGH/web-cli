@@ -13,7 +13,8 @@ const Params = Type.Object({
   limit: Type.Optional(
     Type.Integer({
       maximum: 120,
-      description: "Maximum number of results to return",
+      default: 20,
+      description: "Maximum number of results to return, defaults to 20",
     }),
   ),
 });

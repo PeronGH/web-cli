@@ -26,7 +26,7 @@ export interface SearchResult {
 }
 
 export interface SearchOptions {
-  /** Maximum number of results to return, capped at `MAX_RESULTS`. */
+  /** Maximum number of results to return. Defaults to 20, capped at 120. */
   limit?: number;
   signal?: AbortSignal;
 }
@@ -157,11 +157,10 @@ async function searchPage(
 /** Search the web, returning results in relevance order. */
 export async function search(
   query: string,
-  { limit, signal }: SearchOptions = {},
+  { limit = PAGE_SIZE, signal }: SearchOptions = {},
 ): Promise<SearchResult[]> {
   // A page holds PAGE_SIZE results, so a larger limit costs one request each.
-  const requested = limit === undefined ? 1 : Math.ceil(limit / PAGE_SIZE);
-  const pages = Math.min(Math.max(requested, 0), MAX_PAGE);
+  const pages = Math.min(Math.max(Math.ceil(limit / PAGE_SIZE), 0), MAX_PAGE);
 
   // Pages are independent, so they go out together — the token is minted once
   // up front, since a concurrent mint per page would each need its own request.
@@ -185,7 +184,7 @@ export async function search(
   }
   if (results.length === 0 && failure) throw failure.reason;
 
-  return limit === undefined ? results : results.slice(0, limit);
+  return results.slice(0, limit);
 }
 
 /** Render results as a numbered Markdown list. */
