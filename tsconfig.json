@@ -11,6 +11,7 @@
 
     // Bundler mode
     "moduleResolution": "bundler",
+    "customConditions": ["bun"],
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true,

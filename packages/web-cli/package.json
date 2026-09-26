@@ -16,8 +16,8 @@
   },
   "exports": {
     ".": {
-      "types": "./src/index.ts",
       "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "default": "./dist/lib.js"
     }
   },
@@ -30,9 +30,10 @@
   },
   "scripts": {
     "start": "bun run src/cli/index.ts",
-    "build": "bun run build:bin && bun run build:lib",
+    "build": "bun run build:bin && bun run build:lib && bun run build:types",
     "build:bin": "bun build src/cli/index.ts --target node --outfile dist/index.js --minify",
     "build:lib": "bun build src/index.ts --target node --outfile dist/lib.js --packages external",
+    "build:types": "tsc -p tsconfig.build.json",
     "prepublishOnly": "bun run build",
     "typecheck": "tsc --noEmit"
   },
