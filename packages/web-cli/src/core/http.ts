@@ -145,10 +145,3 @@ export function fetchPageAsCurl(
 ): Promise<Page> {
   return fetchPageWithHeaders(url, CURL_HEADERS, request);
 }
-
-export async function fetchHtmlAsCurl(
-  url: string,
-  request: RequestOptions = {},
-): Promise<string> {
-  return (await fetchPageAsCurl(url, request)).body;
-}

@@ -1,15 +1,5 @@
-export {
-  type FetchAs,
-  type FetchAsMarkdownOptions,
-  fetchAsMarkdown,
-} from "./core/fetch.ts";
-export {
-  type Fetch,
-  fetchHtml,
-  fetchHtmlAsCurl,
-  type RequestOptions,
-} from "./core/http.ts";
-export { type RewrittenUrl, rewriteUrl } from "./core/rewrite.ts";
+export { type FetchAsMarkdownOptions, fetchAsMarkdown } from "./core/fetch.ts";
+export type { Fetch, RequestOptions } from "./core/http.ts";
 export {
   formatSearchResults,
   type SearchOptions,
