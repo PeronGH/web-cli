@@ -5,7 +5,7 @@ export {
   fetchHtmlAsCurl,
   type RequestOptions,
 } from "./core/http.ts";
-export { rewriteUrl } from "./core/rewrite.ts";
+export { type RewrittenUrl, rewriteUrl } from "./core/rewrite.ts";
 export {
   formatSearchResults,
   type SearchOptions,

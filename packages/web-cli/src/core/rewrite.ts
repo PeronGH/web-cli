@@ -49,11 +49,15 @@ const URL_REWRITES: readonly UrlRewrite[] = [
   },
 ];
 
-/** Rewrite a URL to a better source, with the fetch options that source needs. */
-export function rewriteTarget(url: string): {
+/** A URL rewritten to a better source, with the fetch options that source needs. */
+export interface RewrittenUrl {
   url: string;
+  /** Options that override the caller's when fetching `url`. */
   options: FetchAsMarkdownOptions;
-} {
+}
+
+/** Rewrite a URL to a better source, with the fetch options that source needs. */
+export function rewriteUrl(url: string): RewrittenUrl {
   const parsed = new URL(url);
   for (const { matches, rewrite, options = {} } of URL_REWRITES) {
     if (matches(parsed)) {
@@ -63,8 +67,4 @@ export function rewriteTarget(url: string): {
     }
   }
   return { url, options: {} };
-}
-
-export function rewriteUrl(url: string): string {
-  return rewriteTarget(url).url;
 }
