@@ -83,7 +83,7 @@ export interface Page {
   url: string;
   /** Lowercased Content-Type header, or an empty string when absent. */
   contentType: string;
-  body: string;
+  body: Uint8Array;
 }
 
 async function fetchPageWithHeaders(
@@ -100,7 +100,7 @@ async function fetchPageWithHeaders(
   return {
     url: response.url || url,
     contentType: (response.headers.get("content-type") ?? "").toLowerCase(),
-    body: await response.text(),
+    body: new Uint8Array(await response.arrayBuffer()),
   };
 }
 

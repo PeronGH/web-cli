@@ -1,13 +1,18 @@
 import {
+  type AgentToolResult,
+  convertToPng,
   DEFAULT_MAX_BYTES,
   DEFAULT_MAX_LINES,
   defineTool,
+  type ExtensionContext,
+  formatDimensionNote,
   formatSize,
+  resizeImage,
   type Theme,
   type TruncationResult,
 } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
-import { fetchAsMarkdown } from "@peron_js/web-cli";
+import { fetchContent } from "@peron_js/web-cli";
 import { Type } from "typebox";
 import { prepareFetchOutput, stripTruncationNotice } from "./output.ts";
 import { expandHint, resultText } from "./render.ts";
@@ -27,7 +32,8 @@ const Params = Type.Object({
   ),
 });
 
-interface FetchDetails {
+interface TextDetails {
+  type: "text";
   url: string;
   lines: number;
   bytes: number;
@@ -36,9 +42,77 @@ interface FetchDetails {
   fullOutputPath?: string;
 }
 
+interface ImageDetails {
+  type: "image";
+  url: string;
+  mimeType: string;
+  width: number;
+  height: number;
+}
+
+type FetchDetails = TextDetails | ImageDetails;
+
+// Formats every provider accepts inline; anything else is converted to PNG.
+const INLINE_IMAGE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+]);
+
+async function imageResult(
+  url: string,
+  data: Uint8Array,
+  mimeType: string,
+  ctx: ExtensionContext,
+): Promise<AgentToolResult<ImageDetails>> {
+  let bytes = data;
+  let inputType = mimeType;
+  if (!INLINE_IMAGE_TYPES.has(mimeType)) {
+    const png = await convertToPng(
+      Buffer.from(data).toString("base64"),
+      mimeType,
+    );
+    if (!png)
+      throw new Error(
+        `Cannot fetch ${url}: unsupported image type (${mimeType})`,
+      );
+    bytes = Buffer.from(png.data, "base64");
+    inputType = png.mimeType;
+  }
+
+  const image = await resizeImage(bytes, inputType);
+  if (!image)
+    throw new Error(
+      `Cannot fetch ${url}: image cannot be resized below the inline size limit`,
+    );
+
+  const notes = [`Fetched image [${image.mimeType}]`];
+  const dimensionNote = formatDimensionNote(image);
+  if (dimensionNote) notes.push(dimensionNote);
+  if (ctx.model && !ctx.model.input.includes("image")) {
+    notes.push(
+      "[Current model does not support images. The image will be omitted from this request.]",
+    );
+  }
+  return {
+    content: [
+      { type: "text", text: notes.join("\n") },
+      { type: "image", data: image.data, mimeType: image.mimeType },
+    ],
+    details: {
+      type: "image",
+      url,
+      mimeType: image.mimeType,
+      width: image.width,
+      height: image.height,
+    },
+  };
+}
+
 /** The bracketed status line shown below the result, mirroring pi's own tools. */
 function statusLine(
-  { truncation, fullOutputPath }: FetchDetails,
+  { truncation, fullOutputPath }: TextDetails,
   theme: Theme,
 ): string | undefined {
   const parts: string[] = [];
@@ -64,24 +138,28 @@ function statusLine(
 export const webFetchTool = defineTool<typeof Params, FetchDetails>({
   name: "web_fetch",
   label: "Web Fetch",
-  description: `Fetch a URL and return its content as Markdown. Pages that render their content with JavaScript come back empty from a direct fetch; retry those with render: true. Output is truncated to ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a temp file.`,
+  description: `Fetch a URL and return its content as Markdown, or as an attachment for images; other binary files such as PDFs are not supported. Pages that render their content with JavaScript come back empty from a direct fetch; retry those with render: true. Output is truncated to ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a temp file.`,
   promptSnippet: "Fetch a URL and read its content as Markdown",
   promptGuidelines: [
-    "Use web_fetch instead of curl to read a web page, because it returns readable Markdown instead of raw HTML.",
+    "Use web_fetch instead of curl to read a web page (it returns readable Markdown instead of raw HTML) or to view an image.",
   ],
   parameters: Params,
 
-  async execute(_toolCallId, params, signal) {
-    const markdown = await fetchAsMarkdown(
+  async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+    const content = await fetchContent(
       params.url,
       { render: params.render, raw: params.raw },
       { signal },
     );
+    if (content.type === "image") {
+      return imageResult(params.url, content.data, content.mimeType, ctx);
+    }
     const { text, notice, truncation, fullOutputPath } =
-      await prepareFetchOutput(markdown);
+      await prepareFetchOutput(content.text);
     return {
       content: [{ type: "text", text }],
       details: {
+        type: "text",
         url: params.url,
         lines: truncation.outputLines,
         bytes: truncation.outputBytes,
@@ -106,7 +184,19 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
       return new Text(theme.fg("error", resultText(result)), 0, 0);
     }
 
-    const { lines, bytes, notice } = result.details;
+    const { details } = result;
+    if (details.type === "image") {
+      return new Text(
+        theme.fg(
+          "success",
+          `${details.mimeType} · ${details.width}×${details.height}`,
+        ),
+        0,
+        0,
+      );
+    }
+
+    const { lines, bytes, notice } = details;
     let text = theme.fg(
       "success",
       `${lines} line${lines === 1 ? "" : "s"} · ${formatSize(bytes)}`,
@@ -122,7 +212,7 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
       }
     }
 
-    const status = statusLine(result.details, theme);
+    const status = statusLine(details, theme);
     if (status) text += `\n${status}`;
     return new Text(text, 0, 0);
   },

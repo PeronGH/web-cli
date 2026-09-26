@@ -35,17 +35,18 @@ Run `web --help` or `web <command> --help` for details.
 ## Library
 
 ```ts
-import { fetchAsMarkdown, formatSearchResults, search } from "@peron_js/web-cli";
+import { fetchContent, formatSearchResults, search } from "@peron_js/web-cli";
 
 const results = await search("bun workspaces", { pages: 2 });
 console.log(formatSearchResults(results));
-console.log(await fetchAsMarkdown(results[0].url));
-console.log(await fetchAsMarkdown(results[0].url, { render: true }));
+const page = await fetchContent(results[0].url, { render: true });
+if (page.type === "text") console.log(page.text);
 ```
 
-Both functions return strings instead of printing, so they can be embedded in
-other tools — see [`@peron_js/web-pi`](../web-pi). Every request function takes
-an optional last argument with an `AbortSignal` and a `fetch` implementation;
+`fetchContent()` returns web pages as Markdown, other text as is, and images as
+`{ type: "image", data, mimeType }`. Neither function prints, so they can be
+embedded in other tools — see [`@peron_js/web-pi`](../web-pi). Every request
+function takes an optional last argument with an `AbortSignal` and a `fetch` implementation;
 without one it uses the global `fetch`. For example, to honor proxy variables:
 
 ```ts

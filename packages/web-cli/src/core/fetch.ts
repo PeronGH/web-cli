@@ -5,6 +5,7 @@ import {
   fetchHtml,
   fetchPageAsCurl,
   fetchPageDirect,
+  type Page,
   type RequestOptions,
 } from "./http.ts";
 import { rewriteUrl } from "./rewrite.ts";
@@ -90,19 +91,52 @@ function isAnubisChallenge(document: {
  */
 export type FetchAs = "default" | "curl" | "renderer";
 
-export interface FetchAsMarkdownOptions {
+export interface FetchOptions {
   /** Render the page in a headless browser instead of fetching it directly. */
   render?: boolean;
   /** Convert the whole page instead of extracting the main content. */
   raw?: boolean;
 }
 
-/** Fetch a URL and return its content as Markdown. */
-export async function fetchAsMarkdown(
+/**
+ * What a fetch returns: text is Markdown for web pages and the body itself for
+ * other text, and an image is the bytes as served.
+ */
+export type FetchedContent =
+  | { type: "text"; text: string }
+  | { type: "image"; data: Uint8Array; mimeType: string };
+
+// SVG is XML, so it stays text.
+function imageMimeType(contentType: string): string | undefined {
+  const mimeType = contentType.split(";")[0]?.trim() ?? "";
+  return mimeType.startsWith("image/") && mimeType !== "image/svg+xml"
+    ? mimeType
+    : undefined;
+}
+
+function decode(bytes: Uint8Array): string {
+  return new TextDecoder().decode(bytes);
+}
+
+function nonHtmlContent(url: string, page: Page): FetchedContent {
+  const mimeType = imageMimeType(page.contentType);
+  if (mimeType) return { type: "image", data: page.body, mimeType };
+
+  const text = decode(page.body);
+  if (looksBinary(text)) {
+    throw new Error(
+      `Cannot fetch ${url}: content is binary (${page.contentType})`,
+    );
+  }
+  return { type: "text", text };
+}
+
+/** Fetch a URL and return web pages as Markdown, other text as is, and images as bytes. */
+export async function fetchContent(
   target: string,
-  options: FetchAsMarkdownOptions = {},
+  options: FetchOptions = {},
   { fetch, signal }: RequestOptions = {},
-): Promise<string> {
+): Promise<FetchedContent> {
   const { url, fetchAs = options.render ? "renderer" : "default" } =
     rewriteUrl(target);
   const { raw = false } = options;
@@ -120,16 +154,9 @@ export async function fetchAsMarkdown(
   } else {
     const fetchPage = fetchAs === "curl" ? fetchPageAsCurl : fetchPageDirect;
     const page = await fetchPage(url, { signal: deadline, fetch });
-    if (!isHtml(page.contentType)) {
-      if (looksBinary(page.body)) {
-        throw new Error(
-          `Cannot fetch ${url}: content is binary (${page.contentType})`,
-        );
-      }
-      return page.body;
-    }
+    if (!isHtml(page.contentType)) return nonHtmlContent(url, page);
     finalUrl = page.url;
-    html = page.body;
+    html = decode(page.body);
   }
 
   let { document } = parseHTML(html);
@@ -138,7 +165,7 @@ export async function fetchAsMarkdown(
   if (fetchAs === "default" && isAnubisChallenge(document)) {
     const page = await fetchPageAsCurl(url, { signal: deadline, fetch });
     finalUrl = page.url;
-    html = page.body;
+    html = decode(page.body);
     ({ document } = parseHTML(html));
   }
 
@@ -149,19 +176,27 @@ export async function fetchAsMarkdown(
       ? document.querySelector("body > pre:only-child")
       : null;
   if (plaintext) {
-    return plaintext.textContent ?? "";
+    return { type: "text", text: plaintext.textContent ?? "" };
   }
 
-  if (raw || defuddleManglesUrl(new URL(finalUrl))) {
-    return fullPageMarkdown(html);
-  }
+  const markdown =
+    raw || defuddleManglesUrl(new URL(finalUrl))
+      ? fullPageMarkdown(html)
+      : await mainContentMarkdown(document, html, finalUrl);
+  return { type: "text", text: markdown };
+}
 
+async function mainContentMarkdown(
+  document: ReturnType<typeof parseHTML>["document"],
+  html: string,
+  url: string,
+): Promise<string> {
   // useAsync: false stops site-specific extractors from fetching third-party
   // sources themselves (e.g. old.reddit.com), which would otherwise make a
   // separate unconfigured request.
   let extracted: Awaited<ReturnType<typeof Defuddle>>;
   try {
-    extracted = await Defuddle(document, finalUrl, {
+    extracted = await Defuddle(document, url, {
       markdown: true,
       includeReplies: true,
       useAsync: false,

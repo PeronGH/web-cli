@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { fetchAsMarkdown } from "../core/fetch.ts";
+import { fetchContent } from "../core/fetch.ts";
 import { proxyFetch } from "./proxy.ts";
 
 export const fetchCommand = defineCommand({
@@ -26,12 +26,16 @@ export const fetchCommand = defineCommand({
     },
   },
   async run({ args }) {
-    console.log(
-      await fetchAsMarkdown(
-        args.url,
-        { render: args.render, raw: args.raw },
-        { fetch: proxyFetch },
-      ),
+    const content = await fetchContent(
+      args.url,
+      { render: args.render, raw: args.raw },
+      { fetch: proxyFetch },
     );
+    if (content.type === "image") {
+      throw new Error(
+        `Cannot print ${args.url}: content is an image (${content.mimeType})`,
+      );
+    }
+    console.log(content.text);
   },
 });
