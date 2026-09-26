@@ -1,4 +1,4 @@
-import { httpFetch } from "./http.ts";
+import { CHROMIUM_HEADERS, httpFetch } from "./http.ts";
 
 // Google Custom Search Engine, ported from SearXNG's `google_cse` engine: a CSE
 // exposes the regular Google index as JSONP with no API key, so results come
@@ -51,7 +51,7 @@ async function cseToken(signal?: AbortSignal): Promise<CseToken> {
   if (cachedToken && Date.now() < cachedTokenExpiresAt) return cachedToken;
 
   const response = await httpFetch(LIBRARY_URL, {
-    headers: { Accept: "*/*" },
+    headers: { ...CHROMIUM_HEADERS, Accept: "*/*" },
     signal,
   });
   if (!response.ok) {
@@ -113,6 +113,7 @@ async function searchPage(
 
   const response = await httpFetch(`${ENDPOINT}?${params}`, {
     headers: {
+      ...CHROMIUM_HEADERS,
       Accept: "*/*",
       Referer: "https://cse.google.com/",
       Cookie: "CONSENT=YES+",
