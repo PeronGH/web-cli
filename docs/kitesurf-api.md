@@ -1,6 +1,6 @@
 # Kitesurf API
 
-[Kitesurf](https://kitesurf.cloudflare.app) is Cloudflare's headless browser
+[Kitesurf](https://kitesurf.dev) is Cloudflare's headless browser
 running on Workers. `fetchHtml()` in
 [`core/http.ts`](../packages/web-cli/src/core/http.ts) sends `render` fetches
 through its `/html` endpoint, which returns the serialized post-JavaScript DOM.
@@ -28,7 +28,7 @@ http(s) allowed)`. `/json/version` reports `Kitesurf/0.0.1`, CDP
 1.3, V8 12.0, Chrome/145, so any CDP client attaches without a local Chrome:
 
 ```bash
-npx -y chrome-devtools-mcp@latest --wsEndpoint=wss://kitesurf.cloudflare.app/devtools/browser
+npx -y chrome-devtools-mcp@latest --wsEndpoint=wss://kitesurf.dev/devtools/browser
 ```
 
 ## Request schema
@@ -76,7 +76,7 @@ The playground allows 20s CPU and 60s wall-clock per navigation.
 
 Fixed `Accept`, `Accept-Language: en-US,en;q=0.9`, a self-referential `Referer`,
 no `Sec-Fetch-*` or `sec-ch-ua`, plus Cloudflare's `Cf-Worker:
-kitesurf.cloudflare.app`, `Cdn-Loop`, `Cf-Ew-Via`, `Cf-Visitor` and a
+kitesurf.dev`, `Cdn-Loop`, `Cf-Ew-Via`, `Cf-Visitor` and a
 [Web Bot Auth](https://developers.cloudflare.com/bots/concepts/bot/verified-bots/web-bot-auth/)
 signature naming `cloudflare-browser-rendering-085.workers.dev`.
 `setExtraHTTPHeaders` cannot overwrite the Cloudflare-injected ones.

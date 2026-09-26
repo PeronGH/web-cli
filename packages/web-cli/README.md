@@ -19,7 +19,7 @@ web fetch --render <url>    # render it in a headless browser (slow; for JavaScr
 ```
 
 `fetch` requests the URL directly with browser navigation headers. Pass
-`--render` to load the page through [Kitesurf](https://kitesurf.cloudflare.app),
+`--render` to load the page through [Kitesurf](https://kitesurf.dev),
 a headless browser on Cloudflare Workers, so client-side rendered pages work —
 the fetched URL is sent to that service. See
 [docs/kitesurf-api.md](../../docs/kitesurf-api.md) for the rendering API.

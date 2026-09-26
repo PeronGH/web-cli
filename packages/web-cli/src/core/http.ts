@@ -5,7 +5,7 @@ import { EnvHttpProxyAgent } from "undici";
 // Rendering through it is opt-in, for pages whose content only exists after
 // JavaScript runs; the response is always HTML no matter what the target
 // served.
-const KITESURF_HTML = "https://kitesurf.cloudflare.app/html";
+const KITESURF_HTML = "https://kitesurf.dev/html";
 
 // Browser-like request headers so sites serve their standard server-rendered
 // HTML instead of a bot/blocked page. Direct fetches don't execute JavaScript,
