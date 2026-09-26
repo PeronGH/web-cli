@@ -1,4 +1,4 @@
-import { CHROMIUM_HEADERS, type Fetch } from "./http.ts";
+import { CHROMIUM_HEADERS, type Fetch, type RequestOptions } from "./http.ts";
 
 // Google Custom Search Engine, ported from SearXNG's `google_cse` engine: a CSE
 // exposes the regular Google index as JSONP with no API key, so results come
@@ -25,9 +25,6 @@ export interface SearchResult {
 export interface SearchOptions {
   /** Maximum number of results to return. Defaults to 20, capped at 120. */
   limit?: number;
-  signal?: AbortSignal;
-  /** `fetch` implementation for every request. Defaults to the global `fetch`. */
-  fetch?: Fetch;
 }
 
 interface CseToken {
@@ -155,7 +152,8 @@ async function searchPage(
 /** Search the web, returning results in relevance order. */
 export async function search(
   query: string,
-  { limit = PAGE_SIZE, signal, fetch = globalThis.fetch }: SearchOptions = {},
+  { limit = PAGE_SIZE }: SearchOptions = {},
+  { fetch = globalThis.fetch, signal }: RequestOptions = {},
 ): Promise<SearchResult[]> {
   // A page holds PAGE_SIZE results, so a larger limit costs one request each.
   const pages = Math.min(Math.max(Math.ceil(limit / PAGE_SIZE), 0), MAX_PAGE);

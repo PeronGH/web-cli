@@ -72,11 +72,11 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
   parameters: Params,
 
   async execute(_toolCallId, params, signal) {
-    const markdown = await fetchAsMarkdown(params.url, {
-      render: params.render,
-      raw: params.raw,
-      signal,
-    });
+    const markdown = await fetchAsMarkdown(
+      params.url,
+      { render: params.render, raw: params.raw },
+      { signal },
+    );
     const { text, notice, truncation, fullOutputPath } =
       await prepareFetchOutput(markdown);
     return {

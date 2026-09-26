@@ -43,16 +43,17 @@ console.log(await fetchAsMarkdown(results[0].url));
 console.log(await fetchAsMarkdown(results[0].url, { render: true }));
 ```
 
-Both functions accept an `AbortSignal` and return strings instead of printing,
-so they can be embedded in other tools — see [`@peron_js/web-pi`](../web-pi).
-They send requests through the global `fetch` unless given one of their own,
-such as a proxy-aware implementation:
+Both functions return strings instead of printing, so they can be embedded in
+other tools — see [`@peron_js/web-pi`](../web-pi). Every request function takes
+an optional last argument with an `AbortSignal` and a `fetch` implementation;
+without one it uses the global `fetch`. For example, to honor proxy variables:
 
 ```ts
 import { EnvHttpProxyAgent, fetch } from "undici";
 
 const dispatcher = new EnvHttpProxyAgent();
-await search("bun workspaces", {
+await search("bun workspaces", { limit: 3 }, {
   fetch: (url, init) => fetch(url, { ...init, dispatcher }),
+  signal: AbortSignal.timeout(10_000),
 });
 ```

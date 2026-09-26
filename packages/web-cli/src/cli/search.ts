@@ -28,10 +28,11 @@ export const searchCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const results = await search(args.query, {
-      limit: parseLimit(args.limit),
-      fetch: proxyFetch,
-    });
+    const results = await search(
+      args.query,
+      { limit: parseLimit(args.limit) },
+      { fetch: proxyFetch },
+    );
     if (results.length === 0) {
       console.error("No results found.");
       return;

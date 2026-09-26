@@ -68,12 +68,14 @@ const CURL_HEADERS = {
 /** The part of `fetch` this library calls; any standard `fetch` fits. */
 export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 
-export interface FetchHtmlOptions extends RequestInit {
+/** How requests are made; the last, optional argument of every request function. */
+export interface RequestOptions {
   /**
    * `fetch` implementation for every request, e.g. one that routes through a
    * proxy. Defaults to the global `fetch` at call time.
    */
   fetch?: Fetch;
+  signal?: AbortSignal;
 }
 
 export interface Page {
@@ -86,14 +88,10 @@ export interface Page {
 
 async function fetchPageWithHeaders(
   url: string,
-  headers: NonNullable<RequestInit["headers"]>,
-  { fetch = globalThis.fetch, ...init }: FetchHtmlOptions,
+  headers: Record<string, string>,
+  { fetch = globalThis.fetch, signal }: RequestOptions,
 ): Promise<Page> {
-  const response = await fetch(url, {
-    redirect: "follow",
-    ...init,
-    headers,
-  });
+  const response = await fetch(url, { redirect: "follow", headers, signal });
   if (!response.ok) {
     throw new Error(
       `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
@@ -109,22 +107,17 @@ async function fetchPageWithHeaders(
 /** Fetch a URL directly with browser navigation headers. */
 export function fetchPageDirect(
   url: string,
-  init: FetchHtmlOptions = {},
+  request: RequestOptions = {},
 ): Promise<Page> {
-  const headers = new Headers(BROWSER_HEADERS);
-  for (const [name, value] of new Headers(init.headers)) {
-    headers.set(name, value);
-  }
-  return fetchPageWithHeaders(url, headers, init);
+  return fetchPageWithHeaders(url, BROWSER_HEADERS, request);
 }
 
 /** Fetch a URL as browser-rendered HTML. Throws when the request is rejected. */
 export async function fetchHtml(
   url: string,
-  { fetch = globalThis.fetch, ...init }: FetchHtmlOptions = {},
+  { fetch = globalThis.fetch, signal }: RequestOptions = {},
 ): Promise<string> {
   const response = await fetch(KITESURF_HTML, {
-    ...init,
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -133,6 +126,7 @@ export async function fetchHtml(
       rejectResourceTypes: REJECT_RESOURCE_TYPES,
       bestAttempt: true,
     }),
+    signal,
   });
   if (!response.ok) {
     const detail = (await response.text()).trim();
@@ -147,14 +141,14 @@ export async function fetchHtml(
  */
 export function fetchPageAsCurl(
   url: string,
-  init: FetchHtmlOptions = {},
+  request: RequestOptions = {},
 ): Promise<Page> {
-  return fetchPageWithHeaders(url, CURL_HEADERS, init);
+  return fetchPageWithHeaders(url, CURL_HEADERS, request);
 }
 
 export async function fetchHtmlAsCurl(
   url: string,
-  init: FetchHtmlOptions = {},
+  request: RequestOptions = {},
 ): Promise<string> {
-  return (await fetchPageAsCurl(url, init)).body;
+  return (await fetchPageAsCurl(url, request)).body;
 }

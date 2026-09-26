@@ -35,10 +35,11 @@ export const webSearchTool = defineTool<typeof Params, SearchDetails>({
   parameters: Params,
 
   async execute(_toolCallId, params, signal) {
-    const results = await search(params.query, {
-      limit: params.limit,
-      signal,
-    });
+    const results = await search(
+      params.query,
+      { limit: params.limit },
+      { signal },
+    );
     return {
       content: [
         {

@@ -2,10 +2,10 @@ import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
 import {
-  type Fetch,
   fetchHtml,
   fetchPageAsCurl,
   fetchPageDirect,
+  type RequestOptions,
 } from "./http.ts";
 import { rewriteUrl } from "./rewrite.ts";
 
@@ -88,15 +88,13 @@ export interface FetchAsMarkdownOptions {
   render?: boolean;
   /** Convert the whole page instead of extracting the main content. */
   raw?: boolean;
-  signal?: AbortSignal;
-  /** `fetch` implementation for every request. Defaults to the global `fetch`. */
-  fetch?: Fetch;
 }
 
 /** Fetch a URL and return its content as Markdown. */
 export async function fetchAsMarkdown(
   target: string,
-  { render = false, raw = false, signal, fetch }: FetchAsMarkdownOptions = {},
+  { render = false, raw = false }: FetchAsMarkdownOptions = {},
+  { fetch, signal }: RequestOptions = {},
 ): Promise<string> {
   const url = rewriteUrl(target);
   // One deadline for the whole fetch: the Anubis retry is a second round trip

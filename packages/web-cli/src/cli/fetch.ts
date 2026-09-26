@@ -27,11 +27,11 @@ export const fetchCommand = defineCommand({
   },
   async run({ args }) {
     console.log(
-      await fetchAsMarkdown(args.url, {
-        render: args.render,
-        raw: args.raw,
-        fetch: proxyFetch,
-      }),
+      await fetchAsMarkdown(
+        args.url,
+        { render: args.render, raw: args.raw },
+        { fetch: proxyFetch },
+      ),
     );
   },
 });
