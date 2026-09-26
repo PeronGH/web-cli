@@ -74,10 +74,7 @@ async function imageResult(
     image = png;
   }
   return {
-    content: [
-      { type: "text", text: `Fetched image [${mimeType}]` },
-      { type: "image", ...image },
-    ],
+    content: [{ type: "image", ...image }],
     details: { type: "image", url, mimeType, bytes: bytes.byteLength },
   };
 }
