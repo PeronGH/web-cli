@@ -7,7 +7,7 @@ import {
   fetchPageDirect,
   type RequestOptions,
 } from "./http.ts";
-import { rewriteUrl } from "./rewrite.ts";
+import { rewriteTarget } from "./rewrite.ts";
 
 // A missing content type is treated as HTML, matching how browsers sniff pages.
 function isHtml(contentType: string): boolean {
@@ -93,10 +93,12 @@ export interface FetchAsMarkdownOptions {
 /** Fetch a URL and return its content as Markdown. */
 export async function fetchAsMarkdown(
   target: string,
-  { render = false, raw = false }: FetchAsMarkdownOptions = {},
+  options: FetchAsMarkdownOptions = {},
   { fetch, signal }: RequestOptions = {},
 ): Promise<string> {
-  const url = rewriteUrl(target);
+  const rewrite = rewriteTarget(target);
+  const url = rewrite.url;
+  const { render = false, raw = false } = { ...options, ...rewrite.options };
   // One deadline for the whole fetch: the Anubis retry is a second round trip
   // and must not get a fresh budget.
   const deadline = AbortSignal.any([
