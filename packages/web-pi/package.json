@@ -30,8 +30,8 @@
     "@peron_js/web-cli": "workspace:*"
   },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*",
-    "@earendil-works/pi-tui": "*",
+    "@earendil-works/pi-coding-agent": ">=0.87.0",
+    "@earendil-works/pi-tui": ">=0.87.0",
     "typebox": "*"
   }
 }

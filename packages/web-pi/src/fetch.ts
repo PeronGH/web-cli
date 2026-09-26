@@ -4,10 +4,7 @@ import {
   DEFAULT_MAX_BYTES,
   DEFAULT_MAX_LINES,
   defineTool,
-  type ExtensionContext,
-  formatDimensionNote,
   formatSize,
-  resizeImage,
   type Theme,
   type TruncationResult,
 } from "@earendil-works/pi-coding-agent";
@@ -46,13 +43,14 @@ interface ImageDetails {
   type: "image";
   url: string;
   mimeType: string;
-  width: number;
-  height: number;
+  bytes: number;
 }
 
 type FetchDetails = TextDetails | ImageDetails;
 
-// Formats every provider accepts inline; anything else is converted to PNG.
+// Formats every provider accepts inline. Pi resizes tool-result images to the
+// model's limits, but passes through any it fails to convert, and a provider
+// rejects the whole conversation over one it can't read.
 const INLINE_IMAGE_TYPES = new Set([
   "image/png",
   "image/jpeg",
@@ -62,51 +60,25 @@ const INLINE_IMAGE_TYPES = new Set([
 
 async function imageResult(
   url: string,
-  data: Uint8Array,
+  bytes: Uint8Array,
   mimeType: string,
-  ctx: ExtensionContext,
 ): Promise<AgentToolResult<ImageDetails>> {
-  let bytes = data;
-  let inputType = mimeType;
+  let image = { data: Buffer.from(bytes).toString("base64"), mimeType };
   if (!INLINE_IMAGE_TYPES.has(mimeType)) {
-    const png = await convertToPng(
-      Buffer.from(data).toString("base64"),
-      mimeType,
-    );
-    if (!png)
+    const png = await convertToPng(image.data, mimeType);
+    if (!png) {
       throw new Error(
         `Cannot fetch ${url}: unsupported image type (${mimeType})`,
       );
-    bytes = Buffer.from(png.data, "base64");
-    inputType = png.mimeType;
-  }
-
-  const image = await resizeImage(bytes, inputType);
-  if (!image)
-    throw new Error(
-      `Cannot fetch ${url}: image cannot be resized below the inline size limit`,
-    );
-
-  const notes = [`Fetched image [${image.mimeType}]`];
-  const dimensionNote = formatDimensionNote(image);
-  if (dimensionNote) notes.push(dimensionNote);
-  if (ctx.model && !ctx.model.input.includes("image")) {
-    notes.push(
-      "[Current model does not support images. The image will be omitted from this request.]",
-    );
+    }
+    image = png;
   }
   return {
     content: [
-      { type: "text", text: notes.join("\n") },
-      { type: "image", data: image.data, mimeType: image.mimeType },
+      { type: "text", text: `Fetched image [${mimeType}]` },
+      { type: "image", ...image },
     ],
-    details: {
-      type: "image",
-      url,
-      mimeType: image.mimeType,
-      width: image.width,
-      height: image.height,
-    },
+    details: { type: "image", url, mimeType, bytes: bytes.byteLength },
   };
 }
 
@@ -145,14 +117,14 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
   ],
   parameters: Params,
 
-  async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+  async execute(_toolCallId, params, signal) {
     const content = await fetchContent(
       params.url,
       { render: params.render, raw: params.raw },
       { signal },
     );
     if (content.type === "image") {
-      return imageResult(params.url, content.data, content.mimeType, ctx);
+      return imageResult(params.url, content.data, content.mimeType);
     }
     const { text, notice, truncation, fullOutputPath } =
       await prepareFetchOutput(content.text);
@@ -189,7 +161,7 @@ export const webFetchTool = defineTool<typeof Params, FetchDetails>({
       return new Text(
         theme.fg(
           "success",
-          `${details.mimeType} · ${details.width}×${details.height}`,
+          `${details.mimeType} · ${formatSize(details.bytes)}`,
         ),
         0,
         0,

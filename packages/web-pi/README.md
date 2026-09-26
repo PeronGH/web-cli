@@ -18,7 +18,7 @@ pi install npm:@peron_js/web-pi
   or set `render` to load it in a headless browser (slow; for JavaScript-only
   pages). Output is truncated to 2000 lines or 50KB; when truncated, the full
   Markdown is saved to a temporary file and its path is returned. Image URLs
-  come back as image attachments, resized to fit provider limits
+  come back as image attachments
 
 Both honor the `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` environment variables
 and support cancellation. In the TUI each result collapses to a summary line,
