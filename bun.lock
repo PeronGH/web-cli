@@ -13,7 +13,7 @@
     },
     "packages/web-cli": {
       "name": "@peron_js/web-cli",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "bin": {
         "web": "./dist/index.js",
       },
@@ -31,7 +31,7 @@
     },
     "packages/web-pi": {
       "name": "@peron_js/web-pi",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "dependencies": {
         "@peron_js/web-cli": "workspace:*",
       },
