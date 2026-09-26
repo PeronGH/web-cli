@@ -80,7 +80,9 @@ async function cseToken(signal?: AbortSignal): Promise<CseToken> {
 
 /** Google labels the interface by language (`hl`), which follows the host locale. */
 function localeParams(): Record<string, string> {
-  const [language = "en"] = Intl.DateTimeFormat().resolvedOptions().locale.split("-");
+  const [language = "en"] = Intl.DateTimeFormat()
+    .resolvedOptions()
+    .locale.split("-");
   return { hl: language };
 }
 
