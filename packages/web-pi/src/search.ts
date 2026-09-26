@@ -10,11 +10,13 @@ import { expandHint, resultText } from "./render.ts";
 
 const Params = Type.Object({
   query: Type.String({ description: "The search query" }),
-  limit: Type.Optional(
+  pages: Type.Optional(
     Type.Integer({
-      maximum: 120,
-      default: 20,
-      description: "Maximum number of results to return, defaults to 20",
+      minimum: 1,
+      maximum: 6,
+      default: 1,
+      description:
+        "Pages of 20 results to return, defaults to 1; 6 returns all 120",
     }),
   ),
 });
@@ -37,7 +39,7 @@ export const webSearchTool = defineTool<typeof Params, SearchDetails>({
   async execute(_toolCallId, params, signal) {
     const results = await search(
       params.query,
-      { limit: params.limit },
+      { pages: params.pages },
       { signal },
     );
     return {
@@ -57,8 +59,9 @@ export const webSearchTool = defineTool<typeof Params, SearchDetails>({
   renderCall(args, theme) {
     let text = theme.fg("toolTitle", theme.bold("web_search "));
     text += theme.fg("accent", args.query);
-    if (args.limit !== undefined) {
-      text += theme.fg("dim", ` (max ${args.limit})`);
+    if (args.pages !== undefined) {
+      const plural = args.pages === 1 ? "" : "s";
+      text += theme.fg("dim", ` (${args.pages} page${plural})`);
     }
     return new Text(text, 0, 0);
   },

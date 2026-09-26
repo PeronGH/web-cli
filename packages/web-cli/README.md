@@ -13,9 +13,10 @@ bun install -g @peron_js/web-cli
 ## Usage
 
 ```bash
-web search <query>          # search the web for a query
-web fetch <url>             # fetch a URL and print its main content as Markdown
-web fetch --render <url>    # render it in a headless browser (slow; for JavaScript-only pages)
+web search <query>           # search the web for a query (20 results)
+web search --pages 6 <query> # fetch 6 pages of 20, i.e. all 120 results
+web fetch <url>              # fetch a URL and print its main content as Markdown
+web fetch --render <url>     # render it in a headless browser (slow; for JavaScript-only pages)
 ```
 
 `fetch` requests the URL directly with browser navigation headers. Pass
@@ -36,7 +37,7 @@ Run `web --help` or `web <command> --help` for details.
 ```ts
 import { fetchAsMarkdown, formatSearchResults, search } from "@peron_js/web-cli";
 
-const results = await search("bun workspaces", { limit: 3 });
+const results = await search("bun workspaces", { pages: 2 });
 console.log(formatSearchResults(results));
 console.log(await fetchAsMarkdown(results[0].url));
 console.log(await fetchAsMarkdown(results[0].url, { render: true }));
@@ -51,7 +52,7 @@ without one it uses the global `fetch`. For example, to honor proxy variables:
 import { EnvHttpProxyAgent, fetch } from "undici";
 
 const dispatcher = new EnvHttpProxyAgent();
-await search("bun workspaces", { limit: 3 }, {
+await search("bun workspaces", { pages: 2 }, {
   fetch: (url, init) => fetch(url, { ...init, dispatcher }),
   signal: AbortSignal.timeout(10_000),
 });

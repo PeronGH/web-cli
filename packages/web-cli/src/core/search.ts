@@ -10,9 +10,8 @@ const LIBRARY_URL = `https://cse.google.com/cse/cse.js?cx=${CX}`;
 const ENDPOINT = "https://cse.google.com/cse/element/v1";
 
 const PAGE_SIZE = 20;
-/** Google stops serving a CSE past six pages, however big the limit. */
-const MAX_RESULTS = 120;
-const MAX_PAGE = MAX_RESULTS / PAGE_SIZE;
+/** Google stops serving a CSE past six pages, i.e. 120 results. */
+const MAX_PAGES = 6;
 const TOKEN_TTL_MS = 60 * 60 * 1000;
 
 /** A single search result. */
@@ -23,8 +22,8 @@ export interface SearchResult {
 }
 
 export interface SearchOptions {
-  /** Maximum number of results to return. Defaults to 20, capped at 120. */
-  limit?: number;
+  /** Pages of 20 results to fetch, from 1 to 6. Defaults to 1. */
+  pages?: number;
 }
 
 interface CseToken {
@@ -152,17 +151,14 @@ async function searchPage(
 /** Search the web, returning results in relevance order. */
 export async function search(
   query: string,
-  { limit = PAGE_SIZE }: SearchOptions = {},
+  { pages = 1 }: SearchOptions = {},
   { fetch = globalThis.fetch, signal }: RequestOptions = {},
 ): Promise<SearchResult[]> {
-  // A page holds PAGE_SIZE results, so a larger limit costs one request each.
-  const pages = Math.min(Math.max(Math.ceil(limit / PAGE_SIZE), 0), MAX_PAGE);
-
   // Pages are independent, so they go out together — the token is minted once
   // up front, since a concurrent mint per page would each need its own request.
   const token = await cseToken(fetch, signal);
   const settled = await Promise.allSettled(
-    Array.from({ length: pages }, (_, page) =>
+    Array.from({ length: Math.min(pages, MAX_PAGES) }, (_, page) =>
       searchPage(query, page * PAGE_SIZE, token, fetch, signal),
     ),
   );
@@ -180,7 +176,7 @@ export async function search(
   }
   if (results.length === 0 && failure) throw failure.reason;
 
-  return results.slice(0, limit);
+  return results;
 }
 
 /** Render results as a numbered Markdown list. */

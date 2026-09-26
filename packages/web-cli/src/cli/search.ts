@@ -2,13 +2,13 @@ import { defineCommand } from "citty";
 import { formatSearchResults, search } from "../core/search.ts";
 import { proxyFetch } from "./proxy.ts";
 
-function parseLimit(value: string | undefined): number | undefined {
+function parsePages(value: string | undefined): number | undefined {
   if (value === undefined) return undefined;
-  const limit = Number.parseInt(value, 10);
-  if (!Number.isFinite(limit) || limit < 0) {
-    throw new Error(`--limit must be a non-negative integer, got ${value}`);
+  const pages = Number(value);
+  if (!Number.isInteger(pages) || pages < 1 || pages > 6) {
+    throw new Error(`--pages must be an integer from 1 to 6, got ${value}`);
   }
-  return limit;
+  return pages;
 }
 
 export const searchCommand = defineCommand({
@@ -22,15 +22,15 @@ export const searchCommand = defineCommand({
       description: "The search query",
       required: true,
     },
-    limit: {
+    pages: {
       type: "string",
-      description: "Maximum number of results to print (default 20)",
+      description: "Pages of 20 results to fetch, 1 to 6 (default 1)",
     },
   },
   async run({ args }) {
     const results = await search(
       args.query,
-      { limit: parseLimit(args.limit) },
+      { pages: parsePages(args.pages) },
       { fetch: proxyFetch },
     );
     if (results.length === 0) {
