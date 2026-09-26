@@ -1,4 +1,4 @@
-import type { FetchAsMarkdownOptions } from "./fetch.ts";
+import type { FetchAs } from "./fetch.ts";
 
 // Some sites serve JavaScript shells to a plain fetch but expose clean,
 // machine-readable content at a sibling URL. Rewrite to that source before
@@ -7,8 +7,8 @@ import type { FetchAsMarkdownOptions } from "./fetch.ts";
 interface UrlRewrite {
   matches: (url: URL) => boolean;
   rewrite: (url: URL) => void;
-  /** Options that suit the rewritten source, overriding the caller's. */
-  options?: FetchAsMarkdownOptions;
+  /** How to fetch the rewritten source, overriding the caller's choice. */
+  fetchAs?: FetchAs;
 }
 
 function removeSuffix(value: string, suffix: string): string {
@@ -24,7 +24,7 @@ const URL_REWRITES: readonly UrlRewrite[] = [
       url.pathname = `/tutorials/data${removeSuffix(url.pathname, "/").toLowerCase()}.md`;
     },
     // The rewritten source is raw Markdown; a browser has nothing to render.
-    options: { render: false },
+    fetchAs: "default",
   },
   {
     matches: (url) =>
@@ -34,9 +34,9 @@ const URL_REWRITES: readonly UrlRewrite[] = [
     rewrite: (url) => {
       url.hostname = "nitter.tiekoetter.com";
     },
-    // Nitter serves server-rendered HTML, and its Anubis gate only lets the
-    // curl retry of a direct fetch through.
-    options: { render: false },
+    // Nitter serves server-rendered HTML behind an Anubis gate that only lets
+    // curl through.
+    fetchAs: "curl",
   },
   {
     // reddit.com 403s plain fetches; eddrit serves the same paths as clean
@@ -47,26 +47,26 @@ const URL_REWRITES: readonly UrlRewrite[] = [
       url.hostname = "eddrit.com";
     },
     // Same Anubis gate as Nitter.
-    options: { render: false },
+    fetchAs: "curl",
   },
 ];
 
-/** A URL rewritten to a better source, with the fetch options that source needs. */
+/** A URL rewritten to a better source, with how that source must be fetched. */
 export interface RewrittenUrl {
   url: string;
-  /** Options that override the caller's when fetching `url`. */
-  options: FetchAsMarkdownOptions;
+  /** How to fetch `url`, overriding the caller's choice; unset leaves it. */
+  fetchAs?: FetchAs;
 }
 
-/** Rewrite a URL to a better source, with the fetch options that source needs. */
+/** Rewrite a URL to a better source, with how that source must be fetched. */
 export function rewriteUrl(url: string): RewrittenUrl {
   const parsed = new URL(url);
-  for (const { matches, rewrite, options = {} } of URL_REWRITES) {
+  for (const { matches, rewrite, fetchAs } of URL_REWRITES) {
     if (matches(parsed)) {
       const rewritten = new URL(parsed);
       rewrite(rewritten);
-      return { url: rewritten.toString(), options };
+      return { url: rewritten.toString(), fetchAs };
     }
   }
-  return { url, options: {} };
+  return { url };
 }

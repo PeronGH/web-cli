@@ -83,6 +83,13 @@ function isAnubisChallenge(document: {
   return document.getElementById("anubis_challenge") !== null;
 }
 
+/**
+ * How a page is fetched: `default` fetches directly as a browser and retries as
+ * curl past an Anubis challenge, `curl` fetches directly as curl only, and
+ * `renderer` renders the page in a headless browser.
+ */
+export type FetchAs = "default" | "curl" | "renderer";
+
 export interface FetchAsMarkdownOptions {
   /** Render the page in a headless browser instead of fetching it directly. */
   render?: boolean;
@@ -96,9 +103,9 @@ export async function fetchAsMarkdown(
   options: FetchAsMarkdownOptions = {},
   { fetch, signal }: RequestOptions = {},
 ): Promise<string> {
-  const rewrite = rewriteUrl(target);
-  const url = rewrite.url;
-  const { render = false, raw = false } = { ...options, ...rewrite.options };
+  const { url, fetchAs = options.render ? "renderer" : "default" } =
+    rewriteUrl(target);
+  const { raw = false } = options;
   // One deadline for the whole fetch: the Anubis retry is a second round trip
   // and must not get a fresh budget.
   const deadline = AbortSignal.any([
@@ -108,10 +115,11 @@ export async function fetchAsMarkdown(
 
   let finalUrl = url;
   let html: string;
-  if (render) {
+  if (fetchAs === "renderer") {
     html = await fetchHtml(url, { signal: deadline, fetch });
   } else {
-    const page = await fetchPageDirect(url, { signal: deadline, fetch });
+    const fetchPage = fetchAs === "curl" ? fetchPageAsCurl : fetchPageDirect;
+    const page = await fetchPage(url, { signal: deadline, fetch });
     if (!isHtml(page.contentType)) {
       if (looksBinary(page.body)) {
         throw new Error(
@@ -127,7 +135,7 @@ export async function fetchAsMarkdown(
   let { document } = parseHTML(html);
 
   // Anubis only challenges browser-like clients; refetch as curl to slip past.
-  if (isAnubisChallenge(document)) {
+  if (fetchAs === "default" && isAnubisChallenge(document)) {
     const page = await fetchPageAsCurl(url, { signal: deadline, fetch });
     finalUrl = page.url;
     html = page.body;
@@ -136,9 +144,10 @@ export async function fetchAsMarkdown(
 
   // Non-HTML targets come back through the browser's plaintext viewer. Return the
   // text itself: converting it would escape every backtick in the source.
-  const plaintext = render
-    ? document.querySelector("body > pre:only-child")
-    : null;
+  const plaintext =
+    fetchAs === "renderer"
+      ? document.querySelector("body > pre:only-child")
+      : null;
   if (plaintext) {
     return plaintext.textContent ?? "";
   }

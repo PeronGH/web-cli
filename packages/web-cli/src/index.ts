@@ -1,4 +1,8 @@
-export { type FetchAsMarkdownOptions, fetchAsMarkdown } from "./core/fetch.ts";
+export {
+  type FetchAs,
+  type FetchAsMarkdownOptions,
+  fetchAsMarkdown,
+} from "./core/fetch.ts";
 export {
   type Fetch,
   fetchHtml,
