@@ -125,7 +125,7 @@ function nonHtmlContent(url: string, page: Page): FetchedContent {
   const text = decode(page.body);
   if (looksBinary(text)) {
     throw new Error(
-      `Cannot fetch ${url}: content is binary (${page.contentType})`,
+      `Cannot fetch ${url}: content is binary (${page.contentType}). Download it with curl instead.`,
     );
   }
   return { type: "text", text };

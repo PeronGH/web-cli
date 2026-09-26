@@ -68,7 +68,7 @@ async function imageResult(
     const png = await convertToPng(image.data, mimeType);
     if (!png) {
       throw new Error(
-        `Cannot fetch ${url}: unsupported image type (${mimeType})`,
+        `Cannot fetch ${url}: unsupported image type (${mimeType}). Download it with curl instead.`,
       );
     }
     image = png;
@@ -107,7 +107,7 @@ function statusLine(
 export const webFetchTool = defineTool<typeof Params, FetchDetails>({
   name: "web_fetch",
   label: "Web Fetch",
-  description: `Fetch a URL and return its content as Markdown, or as an attachment for images; other binary files such as PDFs are not supported. Pages that render their content with JavaScript come back empty from a direct fetch; retry those with render: true. Output is truncated to ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a temp file.`,
+  description: `Fetch a URL and return its content as Markdown, or as an attachment for images; for other binary files such as PDFs, use curl instead. Pages that render their content with JavaScript come back empty from a direct fetch; retry those with render: true. Output is truncated to ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a temp file.`,
   promptSnippet: "Fetch a URL and read its content as Markdown",
   promptGuidelines: [
     "Use web_fetch instead of curl to read a web page (it returns readable Markdown instead of raw HTML) or to view an image.",
