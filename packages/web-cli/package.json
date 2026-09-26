@@ -39,9 +39,8 @@
   },
   "dependencies": {
     "citty": "^0.2.2",
-    "defuddle": "^0.19.2",
+    "defuddle": "^0.19.4",
     "linkedom": "^0.18.13",
-    "mathml-to-latex": "^1.8.0",
     "turndown": "^7.2.4"
   },
   "devDependencies": {
