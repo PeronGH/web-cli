@@ -23,6 +23,8 @@ const URL_REWRITES: readonly UrlRewrite[] = [
     rewrite: (url) => {
       url.pathname = `/tutorials/data${removeSuffix(url.pathname, "/").toLowerCase()}.md`;
     },
+    // The rewritten source is raw Markdown; a browser has nothing to render.
+    options: { render: false },
   },
   {
     matches: (url) =>
