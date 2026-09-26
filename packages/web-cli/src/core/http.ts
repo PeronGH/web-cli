@@ -10,21 +10,22 @@ const KITESURF_HTML = "https://kitesurf.dev/html";
 // Browser-like request headers so sites serve their standard server-rendered
 // HTML instead of a bot/blocked page. Direct fetches don't execute JavaScript,
 // so they take the page as a plain navigating browser would receive it.
+// Mirrors Chromium on Linux as recorded by
+// https://github.com/fa0311/latest-user-agent (header.json, "linux-chrome").
 const BROWSER_HEADERS = {
   "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
   Accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
   "Accept-Language": "en-US,en;q=0.9",
-  "sec-ch-ua": '"Brave";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+  "sec-ch-ua": '"Not A(Brand";v="99", "Chromium";v="154"',
   "sec-ch-ua-mobile": "?0",
-  "sec-ch-ua-platform": '"Windows"',
+  "sec-ch-ua-platform": '"Linux"',
   "Sec-Fetch-Dest": "document",
   "Sec-Fetch-Mode": "navigate",
   "Sec-Fetch-Site": "none",
   "Sec-Fetch-User": "?1",
   "Upgrade-Insecure-Requests": "1",
-  "Sec-GPC": "1",
 };
 
 // A slow origin otherwise burns Kitesurf's whole 60s wall-clock budget. Capping
