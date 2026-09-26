@@ -1,5 +1,6 @@
 import { defineCommand } from "citty";
 import { formatSearchResults, search } from "../core/search.ts";
+import { proxyFetch } from "./proxy.ts";
 
 function parseLimit(value: string | undefined): number | undefined {
   if (value === undefined) return undefined;
@@ -27,7 +28,10 @@ export const searchCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const results = await search(args.query, { limit: parseLimit(args.limit) });
+    const results = await search(args.query, {
+      limit: parseLimit(args.limit),
+      fetch: proxyFetch,
+    });
     if (results.length === 0) {
       console.error("No results found.");
       return;

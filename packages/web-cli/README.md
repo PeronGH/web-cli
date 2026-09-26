@@ -45,3 +45,14 @@ console.log(await fetchAsMarkdown(results[0].url, { render: true }));
 
 Both functions accept an `AbortSignal` and return strings instead of printing,
 so they can be embedded in other tools — see [`@peron_js/web-pi`](../web-pi).
+They send requests through the global `fetch` unless given one of their own,
+such as a proxy-aware implementation:
+
+```ts
+import { EnvHttpProxyAgent, fetch } from "undici";
+
+const dispatcher = new EnvHttpProxyAgent();
+await search("bun workspaces", {
+  fetch: (url, init) => fetch(url, { ...init, dispatcher }),
+});
+```

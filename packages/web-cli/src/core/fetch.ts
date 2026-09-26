@@ -1,7 +1,12 @@
 import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
-import { fetchHtml, fetchPageAsCurl, fetchPageDirect } from "./http.ts";
+import {
+  type Fetch,
+  fetchHtml,
+  fetchPageAsCurl,
+  fetchPageDirect,
+} from "./http.ts";
 import { rewriteUrl } from "./rewrite.ts";
 
 // A missing content type is treated as HTML, matching how browsers sniff pages.
@@ -84,12 +89,14 @@ export interface FetchAsMarkdownOptions {
   /** Convert the whole page instead of extracting the main content. */
   raw?: boolean;
   signal?: AbortSignal;
+  /** `fetch` implementation for every request. Defaults to the global `fetch`. */
+  fetch?: Fetch;
 }
 
 /** Fetch a URL and return its content as Markdown. */
 export async function fetchAsMarkdown(
   target: string,
-  { render = false, raw = false, signal }: FetchAsMarkdownOptions = {},
+  { render = false, raw = false, signal, fetch }: FetchAsMarkdownOptions = {},
 ): Promise<string> {
   const url = rewriteUrl(target);
   // One deadline for the whole fetch: the Anubis retry is a second round trip
@@ -102,9 +109,9 @@ export async function fetchAsMarkdown(
   let finalUrl = url;
   let html: string;
   if (render) {
-    html = await fetchHtml(url, { signal: deadline });
+    html = await fetchHtml(url, { signal: deadline, fetch });
   } else {
-    const page = await fetchPageDirect(url, { signal: deadline });
+    const page = await fetchPageDirect(url, { signal: deadline, fetch });
     if (!isHtml(page.contentType)) {
       if (looksBinary(page.body)) {
         throw new Error(
@@ -121,7 +128,7 @@ export async function fetchAsMarkdown(
 
   // Anubis only challenges browser-like clients; refetch as curl to slip past.
   if (isAnubisChallenge(document)) {
-    const page = await fetchPageAsCurl(url, { signal: deadline });
+    const page = await fetchPageAsCurl(url, { signal: deadline, fetch });
     finalUrl = page.url;
     html = page.body;
     ({ document } = parseHTML(html));

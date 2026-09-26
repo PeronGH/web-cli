@@ -1,5 +1,3 @@
-import { EnvHttpProxyAgent } from "undici";
-
 // Kitesurf is a stateless headless browser running on Cloudflare Workers: it
 // loads the target URL, runs its JavaScript and returns the serialized DOM.
 // Rendering through it is opt-in, for pages whose content only exists after
@@ -67,23 +65,16 @@ const CURL_HEADERS = {
   Accept: "*/*",
 };
 
-// Node's fetch ignores HTTP_PROXY / HTTPS_PROXY / NO_PROXY without a dispatcher
-// that implements them. We attach one per request instead of installing a global
-// dispatcher, so importing this module never changes the host process — it is
-// loaded inside pi as well as in our own CLI. Bun honors the proxy environment
-// natively and ignores the extra option.
-let proxyAgent: EnvHttpProxyAgent | undefined;
+/** The part of `fetch` this library calls; any standard `fetch` fits. */
+export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 
-/** `fetch` that honors the proxy environment variables. */
-export function httpFetch(
-  url: string,
-  init: RequestInit = {},
-): Promise<Response> {
-  proxyAgent ??= new EnvHttpProxyAgent();
-  return fetch(url, { ...init, dispatcher: proxyAgent } as RequestInit);
+export interface FetchHtmlOptions extends RequestInit {
+  /**
+   * `fetch` implementation for every request, e.g. one that routes through a
+   * proxy. Defaults to the global `fetch` at call time.
+   */
+  fetch?: Fetch;
 }
-
-export interface FetchHtmlOptions extends RequestInit {}
 
 export interface Page {
   /** Final URL after redirects. */
@@ -96,9 +87,9 @@ export interface Page {
 async function fetchPageWithHeaders(
   url: string,
   headers: NonNullable<RequestInit["headers"]>,
-  init: FetchHtmlOptions,
+  { fetch = globalThis.fetch, ...init }: FetchHtmlOptions,
 ): Promise<Page> {
-  const response = await httpFetch(url, {
+  const response = await fetch(url, {
     redirect: "follow",
     ...init,
     headers,
@@ -130,9 +121,9 @@ export function fetchPageDirect(
 /** Fetch a URL as browser-rendered HTML. Throws when the request is rejected. */
 export async function fetchHtml(
   url: string,
-  init: FetchHtmlOptions = {},
+  { fetch = globalThis.fetch, ...init }: FetchHtmlOptions = {},
 ): Promise<string> {
-  const response = await httpFetch(KITESURF_HTML, {
+  const response = await fetch(KITESURF_HTML, {
     ...init,
     method: "POST",
     headers: { "content-type": "application/json" },

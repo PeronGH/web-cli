@@ -1,5 +1,6 @@
 import { defineCommand } from "citty";
 import { fetchAsMarkdown } from "../core/fetch.ts";
+import { proxyFetch } from "./proxy.ts";
 
 export const fetchCommand = defineCommand({
   meta: {
@@ -29,6 +30,7 @@ export const fetchCommand = defineCommand({
       await fetchAsMarkdown(args.url, {
         render: args.render,
         raw: args.raw,
+        fetch: proxyFetch,
       }),
     );
   },

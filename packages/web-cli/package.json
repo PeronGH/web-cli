@@ -26,7 +26,7 @@
     "src"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=22.19.0"
   },
   "scripts": {
     "start": "bun run src/cli/index.ts",
@@ -41,10 +41,10 @@
     "defuddle": "^0.19.2",
     "linkedom": "^0.18.13",
     "mathml-to-latex": "^1.8.0",
-    "turndown": "^7.2.4",
-    "undici": "^8.10.0"
+    "turndown": "^7.2.4"
   },
   "devDependencies": {
-    "@types/turndown": "^5.0.6"
+    "@types/turndown": "^5.0.6",
+    "undici": "^8.10.0"
   }
 }

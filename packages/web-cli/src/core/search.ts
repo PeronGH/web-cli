@@ -1,4 +1,4 @@
-import { CHROMIUM_HEADERS, httpFetch } from "./http.ts";
+import { CHROMIUM_HEADERS, type Fetch } from "./http.ts";
 
 // Google Custom Search Engine, ported from SearXNG's `google_cse` engine: a CSE
 // exposes the regular Google index as JSONP with no API key, so results come
@@ -26,6 +26,8 @@ export interface SearchOptions {
   /** Maximum number of results to return. Defaults to 20, capped at 120. */
   limit?: number;
   signal?: AbortSignal;
+  /** `fetch` implementation for every request. Defaults to the global `fetch`. */
+  fetch?: Fetch;
 }
 
 interface CseToken {
@@ -47,10 +49,10 @@ let cachedToken: CseToken | undefined;
 let cachedTokenExpiresAt = 0;
 
 /** Mint the token the element endpoint demands, caching it until it expires. */
-async function cseToken(signal?: AbortSignal): Promise<CseToken> {
+async function cseToken(fetch: Fetch, signal?: AbortSignal): Promise<CseToken> {
   if (cachedToken && Date.now() < cachedTokenExpiresAt) return cachedToken;
 
-  const response = await httpFetch(LIBRARY_URL, {
+  const response = await fetch(LIBRARY_URL, {
     headers: { ...CHROMIUM_HEADERS, Accept: "*/*" },
     signal,
   });
@@ -90,6 +92,7 @@ async function searchPage(
   query: string,
   start: number,
   token: CseToken,
+  fetch: Fetch,
   signal?: AbortSignal,
 ): Promise<SearchResult[]> {
   const params = new URLSearchParams({
@@ -111,7 +114,7 @@ async function searchPage(
   if (token.exp) params.set("exp", token.exp);
   if (start) params.set("start", String(start));
 
-  const response = await httpFetch(`${ENDPOINT}?${params}`, {
+  const response = await fetch(`${ENDPOINT}?${params}`, {
     headers: {
       ...CHROMIUM_HEADERS,
       Accept: "*/*",
@@ -152,17 +155,17 @@ async function searchPage(
 /** Search the web, returning results in relevance order. */
 export async function search(
   query: string,
-  { limit = PAGE_SIZE, signal }: SearchOptions = {},
+  { limit = PAGE_SIZE, signal, fetch = globalThis.fetch }: SearchOptions = {},
 ): Promise<SearchResult[]> {
   // A page holds PAGE_SIZE results, so a larger limit costs one request each.
   const pages = Math.min(Math.max(Math.ceil(limit / PAGE_SIZE), 0), MAX_PAGE);
 
   // Pages are independent, so they go out together — the token is minted once
   // up front, since a concurrent mint per page would each need its own request.
-  const token = await cseToken(signal);
+  const token = await cseToken(fetch, signal);
   const settled = await Promise.allSettled(
     Array.from({ length: pages }, (_, page) =>
-      searchPage(query, page * PAGE_SIZE, token, signal),
+      searchPage(query, page * PAGE_SIZE, token, fetch, signal),
     ),
   );
 
