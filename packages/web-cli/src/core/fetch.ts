@@ -1,6 +1,3 @@
-import { Defuddle } from "defuddle/node";
-import { parseHTML } from "linkedom";
-import TurndownService from "turndown";
 import {
   fetchHtml,
   fetchPageAsCurl,
@@ -8,6 +5,7 @@ import {
   type Page,
   type RequestOptions,
 } from "./http.ts";
+import { htmlToMarkdown as builtinHtmlToMarkdown } from "./markdown.ts";
 import { rewriteUrl } from "./rewrite.ts";
 
 // A missing content type is treated as HTML, matching how browsers sniff pages.
@@ -16,6 +14,17 @@ function isHtml(contentType: string): boolean {
     contentType === "" ||
     contentType.startsWith("text/html") ||
     contentType.startsWith("application/xhtml+xml")
+  );
+}
+
+// Servers often send PDFs as application/octet-stream, so trust the magic bytes
+// too.
+const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
+
+function isPdf(page: Page): boolean {
+  return (
+    page.contentType.startsWith("application/pdf") ||
+    PDF_MAGIC.every((byte, i) => page.body[i] === byte)
   );
 }
 
@@ -35,46 +44,6 @@ function looksBinary(text: string): boolean {
 // Outer bound on the network work, above Kitesurf's own render cap so a render
 // that lands just under it still gets through.
 const FETCH_TIMEOUT_MS = 60_000;
-
-const SE_QUESTION = /^\/questions\/\d+(\/|$)/;
-const GITHUB_ISSUE = /^\/[^/]+\/[^/]+\/issues\/\d+/;
-
-// Stack Exchange hosts share one Q&A engine, so Defuddle mangles their question
-// pages identically.
-const STACKEXCHANGE_HOSTS = new Set([
-  "stackoverflow.com",
-  "serverfault.com",
-  "superuser.com",
-  "askubuntu.com",
-  "mathoverflow.net",
-  "stackapps.com",
-]);
-
-function isStackExchange(hostname: string): boolean {
-  return (
-    STACKEXCHANGE_HOSTS.has(hostname) || hostname.endsWith(".stackexchange.com")
-  );
-}
-
-// Hosts and paths where Defuddle is known to mangle the extracted content, so we
-// convert the whole page instead.
-function defuddleManglesUrl(url: URL): boolean {
-  // Defuddle reduces eddrit listings to a bare title and drops comment threads.
-  if (url.hostname === "eddrit.com") return true;
-  if (isStackExchange(url.hostname) && SE_QUESTION.test(url.pathname))
-    return true;
-  if (url.hostname === "xdaforums.com" && url.pathname.startsWith("/t/"))
-    return true;
-  if (url.hostname === "github.com" && GITHUB_ISSUE.test(url.pathname))
-    return true;
-  return false;
-}
-
-function fullPageMarkdown(html: string): string {
-  const turndown = new TurndownService();
-  turndown.remove(["script", "style"]);
-  return turndown.turndown(html);
-}
 
 // Anubis serves a proof-of-work interstitial carrying a `<script
 // id="anubis_challenge">` payload instead of the page. Matching the raw markup
@@ -98,6 +67,33 @@ export interface FetchOptions {
   render?: boolean;
   /** Convert the whole page instead of extracting the main content. */
   raw?: boolean;
+}
+
+/** What a converter learns about the document it converts. */
+export interface ConvertContext {
+  /** Final URL of the document after redirects. */
+  url: string;
+  /** Aborts when the fetch is cancelled or times out. */
+  signal: AbortSignal;
+}
+
+/** Convert an HTML page to Markdown; `raw` asks for the whole page. */
+export type HtmlToMarkdown = (
+  html: string,
+  context: ConvertContext & { raw?: boolean },
+) => string | Promise<string>;
+
+/** Convert a PDF document to Markdown. */
+export type PdfToMarkdown = (
+  pdf: Uint8Array,
+  context: ConvertContext,
+) => string | Promise<string>;
+
+export interface FetchContentOptions extends RequestOptions {
+  /** Converts web pages. Defaults to the built-in `htmlToMarkdown`. */
+  htmlToMarkdown?: HtmlToMarkdown;
+  /** Converts PDFs. Without it, PDFs are rejected as binary. */
+  pdfToMarkdown?: PdfToMarkdown;
 }
 
 /**
@@ -137,7 +133,12 @@ function nonHtmlContent(url: string, page: Page): FetchedContent {
 export async function fetchContent(
   target: string,
   options: FetchOptions = {},
-  { fetch, signal }: RequestOptions = {},
+  {
+    fetch,
+    signal,
+    htmlToMarkdown = builtinHtmlToMarkdown,
+    pdfToMarkdown,
+  }: FetchContentOptions = {},
 ): Promise<FetchedContent> {
   const { url, fetchAs = options.render ? "renderer" : "default" } =
     rewriteUrl(target);
@@ -156,6 +157,11 @@ export async function fetchContent(
   } else {
     const fetchPage = fetchAs === "curl" ? fetchPageAsCurl : fetchPageDirect;
     const page = await fetchPage(url, { signal: deadline, fetch });
+    if (isPdf(page)) {
+      if (!pdfToMarkdown) return nonHtmlContent(url, page);
+      const context = { url: page.url, signal: deadline };
+      return { type: "text", text: await pdfToMarkdown(page.body, context) };
+    }
     if (!isHtml(page.contentType)) return nonHtmlContent(url, page);
     finalUrl = page.url;
     html = decode(page.body);
@@ -168,51 +174,6 @@ export async function fetchContent(
     html = decode(page.body);
   }
 
-  const { document } = parseHTML(html);
-
-  // Non-HTML targets come back through the browser's plaintext viewer. Return the
-  // text itself: converting it would escape every backtick in the source.
-  const plaintext =
-    fetchAs === "renderer"
-      ? document.querySelector("body > pre:only-child")
-      : null;
-  if (plaintext) {
-    return { type: "text", text: plaintext.textContent ?? "" };
-  }
-
-  const markdown =
-    raw || defuddleManglesUrl(new URL(finalUrl))
-      ? fullPageMarkdown(html)
-      : await mainContentMarkdown(document, html, finalUrl);
-  return { type: "text", text: markdown };
-}
-
-async function mainContentMarkdown(
-  document: ReturnType<typeof parseHTML>["document"],
-  html: string,
-  url: string,
-): Promise<string> {
-  // useAsync: false stops site-specific extractors from fetching third-party
-  // sources themselves (e.g. old.reddit.com), which would otherwise make a
-  // separate unconfigured request.
-  let extracted: Awaited<ReturnType<typeof Defuddle>>;
-  try {
-    extracted = await Defuddle(document, url, {
-      markdown: true,
-      includeReplies: true,
-      useAsync: false,
-    });
-  } catch {
-    // Extractors throw on markup they don't expect; the whole page still works.
-    return fullPageMarkdown(html);
-  }
-
-  const { title, content, wordCount } = extracted;
-
-  // Defuddle found no main content (e.g. an app shell); fall back to the page.
-  if (wordCount === 0) {
-    return fullPageMarkdown(html);
-  }
-
-  return title ? `# ${title}\n\n${content}` : content;
+  const context = { url: finalUrl, raw, signal: deadline };
+  return { type: "text", text: await htmlToMarkdown(html, context) };
 }

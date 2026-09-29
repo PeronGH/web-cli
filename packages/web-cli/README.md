@@ -58,3 +58,21 @@ await search("bun workspaces", { pages: 2 }, {
   signal: AbortSignal.timeout(10_000),
 });
 ```
+
+`fetchContent()` also takes `htmlToMarkdown` and `pdfToMarkdown` converters in that
+argument. Web pages default to the exported built-in `htmlToMarkdown`; PDFs are
+rejected unless `pdfToMarkdown` is given. For example, on Cloudflare Workers with an
+AI binding:
+
+```ts
+const toMarkdown = async (name: string, blob: Blob) => {
+  const result = await env.AI.toMarkdown({ name, blob });
+  if (result.format === "error") throw new Error(result.error);
+  return result.data;
+};
+
+await fetchContent(url, {}, {
+  htmlToMarkdown: (html) => toMarkdown("page.html", new Blob([html], { type: "text/html" })),
+  pdfToMarkdown: (pdf) => toMarkdown("doc.pdf", new Blob([pdf], { type: "application/pdf" })),
+});
+```
