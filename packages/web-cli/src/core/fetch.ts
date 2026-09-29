@@ -77,11 +77,13 @@ function fullPageMarkdown(html: string): string {
 }
 
 // Anubis serves a proof-of-work interstitial carrying a `<script
-// id="anubis_challenge">` payload instead of the page.
-function isAnubisChallenge(document: {
-  getElementById(id: string): unknown;
-}): boolean {
-  return document.getElementById("anubis_challenge") !== null;
+// id="anubis_challenge">` payload instead of the page. Matching the raw markup
+// spares a DOM parse of a page that gets thrown away; requiring a real `<script`
+// tag keeps escaped mentions in page text from matching.
+const ANUBIS_CHALLENGE = /<script\b[^>]*\bid=["']?anubis_challenge["'\s>]/i;
+
+function isAnubisChallenge(html: string): boolean {
+  return ANUBIS_CHALLENGE.test(html);
 }
 
 /**
@@ -159,15 +161,14 @@ export async function fetchContent(
     html = decode(page.body);
   }
 
-  let { document } = parseHTML(html);
-
   // Anubis only challenges browser-like clients; refetch as curl to slip past.
-  if (fetchAs === "default" && isAnubisChallenge(document)) {
+  if (fetchAs === "default" && isAnubisChallenge(html)) {
     const page = await fetchPageAsCurl(url, { signal: deadline, fetch });
     finalUrl = page.url;
     html = decode(page.body);
-    ({ document } = parseHTML(html));
   }
+
+  const { document } = parseHTML(html);
 
   // Non-HTML targets come back through the browser's plaintext viewer. Return the
   // text itself: converting it would escape every backtick in the source.
