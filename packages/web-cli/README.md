@@ -1,5 +1,8 @@
 # @peron_js/web-cli
 
+> [!WARNING]
+> **This project is archived and no longer maintained.** Pi now supports MCP servers officially, so use [workers-webtools](https://github.com/PeronGH/workers-webtools) instead: a stateless MCP server on Cloudflare Workers that lets agents search and fetch the web.
+
 [![npm](https://img.shields.io/npm/v/@peron_js/web-cli)](https://www.npmjs.com/package/@peron_js/web-cli)
 
 A CLI to search and fetch the web.
